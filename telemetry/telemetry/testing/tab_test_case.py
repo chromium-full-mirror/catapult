@@ -7,9 +7,6 @@ from telemetry.core import exceptions
 from telemetry.testing import browser_test_case
 
 
-UNCLOSEABLE_URLS = ['chrome://webui-toolbar.top-chrome']
-
-
 class TabTestCase(browser_test_case.BrowserTestCase):
   def __init__(self, *args):
     super().__init__(*args)
@@ -20,32 +17,11 @@ class TabTestCase(browser_test_case.BrowserTestCase):
 
     if self._browser.supports_tab_control:
       try:
-        # Identify a valid test tab and close any extra tabs,
-        # while explicitly ignoring the WaaP Reload Button WebUI.
-        test_tab = None
-        tabs_to_close = []
-        for tab in self._browser.tabs:
-          # Skip the uncloseable links.
-          if any(url in tab.url for url in UNCLOSEABLE_URLS):
-            continue
-          if test_tab is None:
-            test_tab = tab
-          else:
-            tabs_to_close.append(tab)
-
-        # Close all extra testable tabs
-        for tab in tabs_to_close:
-          tab.Close()
-
-        # If no usable tab was found (e.g. only WebUI existed), create one
-        if test_tab is None:
+        while len(self._browser.tabs) < 1:
           self._browser.tabs.New()
-          # The new tab is essentially the last one, search in reverse.
-          for tab in reversed(self._browser.tabs):
-            if not any(url in tab.url for url in UNCLOSEABLE_URLS):
-              test_tab = tab
-              break
-        self._tab = test_tab
+        while len(self._browser.tabs) > 1:
+          self._browser.tabs[0].Close()
+        self._tab = self._browser.tabs[0]
       except exceptions.TimeoutException:
         self._RestartBrowser()
     else:
