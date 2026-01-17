@@ -4281,7 +4281,7 @@ class DeviceUtils(object):
                      retries=1,
                      enable_usb_resets=False,
                      abis=None,
-                     persistent_shell=False,
+                     persistent_shell=True,
                      **kwargs):
     """Returns a list of DeviceUtils instances.
 
