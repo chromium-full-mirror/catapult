@@ -13,7 +13,10 @@ def filterContexts(contexts):
   # omnibox context. When the feature launches or becomes universally enabled,
   # this filtering can be removed.
   return [
-      c for c in contexts if c['url'] != 'chrome://omnibox-popup.top-chrome/'
+      c for c in contexts if c['url'] not in [
+          'chrome://omnibox-popup.top-chrome/',
+          'chrome://webui-toolbar.top-chrome/',
+      ]
   ]
 
 
