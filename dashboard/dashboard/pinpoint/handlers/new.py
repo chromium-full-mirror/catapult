@@ -191,14 +191,15 @@ def _CreateJob(req):
   return job
 
 
-def _ParseExtraArgs(args):
+def _ParseExtraArgs(args, is_crossbench=False):
   extra_args = []
   if args:
     try:
       extra_args = json.loads(args)
     except ValueError:
       extra_args = shlex.split(args)
-  _RearrangeExtraArgs(extra_args)
+  if not is_crossbench:
+    _RearrangeExtraArgs(extra_args)
   # b/457520120#comment3. Disabling the feature for Pinpoint.
   disable_session_restore_infobar = '--disable-features=SessionRestoreInfobar'
   extra_args.append(
@@ -219,9 +220,10 @@ def _ArgumentsWithConfiguration(original_arguments):
   # arguments. Pull any arguments from the specified "configuration", if any.
   new_arguments = original_arguments.copy()
   provided_args = new_arguments.get('extra_test_args', '')
+  is_crossbench = _IsCrossbench(new_arguments.get('benchmark'))
   extra_test_args = []
   if provided_args:
-    extra_test_args = _ParseExtraArgs(provided_args)
+    extra_test_args = _ParseExtraArgs(provided_args, is_crossbench)
   new_arguments['extra_test_args'] = json.dumps(extra_test_args)
   configuration = original_arguments.get('configuration')
   if configuration:
@@ -239,7 +241,7 @@ def _ArgumentsWithConfiguration(original_arguments):
         # we can respect the value set in bot_configurations in addition to
         # those provided from the UI.
         if k == 'extra_test_args':
-          configured_args = _ParseExtraArgs(v)
+          configured_args = _ParseExtraArgs(v, is_crossbench)
           new_arguments['extra_test_args'] = json.dumps(
               extra_test_args + configured_args,)
         else:
@@ -314,7 +316,9 @@ def _ValidateChangesForTry(arguments):
   if not exp_patch:
     exp_patch = patch
 
-  base_extra_args = _ParseExtraArgs(arguments.get('base_extra_args', ''))
+  is_crossbench = _IsCrossbench(arguments.get('benchmark'))
+  base_extra_args = _ParseExtraArgs(
+      arguments.get('base_extra_args', ''), is_crossbench)
   logging.debug('Base extra args: %s', base_extra_args)
   change_1 = change.Change(
       commits=(commit_1,),
@@ -322,7 +326,8 @@ def _ValidateChangesForTry(arguments):
       label='base',
       args=base_extra_args or None,
       variant=0)
-  exp_extra_args = _ParseExtraArgs(arguments.get('experiment_extra_args', ''))
+  exp_extra_args = _ParseExtraArgs(
+      arguments.get('experiment_extra_args', ''), is_crossbench)
   logging.debug('Experiment extra args: %s', exp_extra_args)
   change_2 = change.Change(
       commits=(commit_2,),
@@ -548,3 +553,7 @@ def _ValidateRequiredParams(params):
   empty_keys = [key for key in _REQUIRED_NON_EMPTY_PARAMS if not params[key]]
   if empty_keys:
     raise ValueError('Parameters must not be empty: %s' % (empty_keys))
+
+
+def _IsCrossbench(benchmark_name):
+  return benchmark_name and benchmark_name.lower().endswith('.crossbench')
