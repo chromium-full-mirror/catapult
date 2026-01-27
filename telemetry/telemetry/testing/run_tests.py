@@ -76,9 +76,14 @@ class RunTestsCommand(command_line.OptparseCommand):
     parser.add_argument('--disable-logging-config',
                         action='store_true',
                         help='Configure logging (default on)')
+    # TODO(crbug.com/454390941): Remove this arg once persistent shell is
+    # turned on by default.
     parser.add_argument('--use-persistent-shell',
                         action='store_true',
                         help='Uses a persistent shell adb connection when set.')
+    parser.add_argument('--disable-persistent-shell',
+                        action='store_true',
+                        help='Do not use a persistent shell adb connection.')
     parser.add_argument('-v',
                         '--verbose',
                         action='count',
