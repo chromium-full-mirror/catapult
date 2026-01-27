@@ -871,7 +871,16 @@ class BrowserOptions():
         consolidated_args.append(arg)
 
     if found_values:
-      consolidated_args.append('%s=%s' % (flag, ','.join(found_values)))
+      # Deduplicate consolidated flag values while preserving first-seen order.
+      unique_values = []
+      seen_values = set()
+      for value in found_values:
+        for item in value.split(','):
+          if not item or item in seen_values:
+            continue
+          unique_values.append(item)
+          seen_values.add(item)
+      consolidated_args.append('%s=%s' % (flag, ','.join(unique_values)))
     self._extra_browser_args = set(consolidated_args)
 
 

@@ -238,6 +238,28 @@ class BrowserOptionsTest(unittest.TestCase):
     self.assertIn(finder_options.browser_options.extra_browser_args,
                   possible_browser_args)
 
+  def testConsolidateValuesForArgFlagPresentDedup(self):
+    """Tests consolidation when flag values need deduping."""
+    finder_options = browser_options.BrowserFinderOptions()
+    # Include duplicate values both across flags and within a single flag.
+    # Consolidation should keep only one instance of each value.
+    extra_args = [
+        '--foo',
+        'A',
+        '--to-merge=C',
+        '--bar=B',
+        '--to-merge=C,D',
+        '--to-merge=D,C,D',
+    ]
+    finder_options.AppendExtraBrowserArgs(extra_args)
+    finder_options.browser_options.ConsolidateValuesForArg('--to-merge')
+    # Due to set order not being consistent, the order of the consolidated args
+    # is not guaranteed.
+    possible_merged_args = ('--to-merge=C,D', '--to-merge=D,C')
+    possible_browser_args = [
+        set(['--foo', 'A', '--bar=B'] + [pma]) for pma in possible_merged_args]
+    self.assertIn(finder_options.browser_options.extra_browser_args,
+                  possible_browser_args)
 
 class ExtraBrowserArgsTest(unittest.TestCase):
 
