@@ -195,7 +195,14 @@ def CreateApp(test_config=None):
         subscription_metadata.subscription.anomaly_configs.append(
             anomaly_config)
     if not match_response.subscriptions:
-      return jsonify({}), 404
+      return jsonify({
+          'messages': [{
+              'severity':
+                  'WARNING',
+              'text':
+                  'No subscriptions matched for path: %s' % (match_request.path)
+          }]
+      }), 404
     return (json_format.MessageToJson(
         match_response, preserving_proto_field_name=True), 200, {
             'Content-Type': 'application/json'
