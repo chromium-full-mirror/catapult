@@ -7,6 +7,8 @@ services:
       args:
         emulator_host: datastore
         emulator_port: 8888
+    environment:
+      - GRPC_DNS_RESOLVER=native
     depends_on:
       - datastore-emulator
     networks:
