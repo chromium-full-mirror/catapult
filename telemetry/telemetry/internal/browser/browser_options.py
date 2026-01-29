@@ -542,10 +542,13 @@ class BrowserFinderOptions(argparse.Namespace):
         self.tool = None
         self.adb_path = None
         self.enable_device_cache = True
+        # TODO(crbug.com/454390941): Remove after migrating using persistent
+        # shell by default.
+        self.use_persistent_shell = False
         # We don't want to use a persistent shell for setting up an emulator
         # as the persistent shell doesn't work until the emulator is already
         # running.
-        self.use_persistent_shell = False
+        self.disable_persistent_shell = True
         self.emulator_debug_tags = None
         self.emulator_enable_network = False
 
