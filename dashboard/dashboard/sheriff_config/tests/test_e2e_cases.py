@@ -212,10 +212,11 @@ class LuciPollingTest(unittest.TestCase):
     response = client.get(
         '/configs/update', headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 200)
+    test_path = 'Master/Bot/Test/Metric/Something_PostFilter'
     response = client.post(
         '/subscriptions/match',
         json={
-            'path': 'Master/Bot/Test/Metric/Something_PostFilter',
+            'path': test_path,
             'stats': ['PCT_99'],
             'metadata': {
                 'units': 'SomeUnit',
@@ -227,6 +228,13 @@ class LuciPollingTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 404)
+    self.assertDictEqual(
+        response.get_json(), {
+            'messages': [{
+                'severity': 'WARNING',
+                'text': 'No subscriptions matched for path: %s' % test_path
+            }]
+        })
 
   def testPollAndMatchWithAnomalyConfig(self):
     client = self.app.test_client()
@@ -279,11 +287,12 @@ class LuciPollingTest(unittest.TestCase):
     client = self.app.test_client()
     response = client.get(
         '/configs/update', headers={'X-Forwarded-Proto': 'https'})
+    test_path = 'NoMatch/Nothing/not-important/not-monitored'
     self.assertEqual(response.status_code, 200)
     response = client.post(
         '/subscriptions/match',
         json={
-            'path': 'NoMatch/Nothing/not-important/not-monitored',
+            'path': test_path,
             'stats': ['PCT_99'],
             'metadata': {
                 'units': 'SomeUnit',
@@ -295,6 +304,13 @@ class LuciPollingTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 404)
+    self.assertDictEqual(
+        response.get_json(), {
+            'messages': [{
+                'severity': 'WARNING',
+                'text': 'No subscriptions matched for path: %s' % test_path
+            }]
+        })
 
   def testMatchInvalidRequest(self):
     client = self.app.test_client()
@@ -601,7 +617,7 @@ subscriptions: {
   name: "Missing Email"
   bug_labels: ["Some-Label"]
   bug_components: ["Some>Component"]
-  patterns: [{glob: "project/**"}]
+  rules: {match: [{glob: "project/**"}]}
 }"""
     invalid_content = """
 {

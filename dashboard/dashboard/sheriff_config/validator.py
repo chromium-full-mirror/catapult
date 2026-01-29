@@ -60,14 +60,14 @@ class MissingName(MissingFields):
 
 
 class MissingPatterns(MissingFields):
-  """Raised when a subscription has no patterns."""
+  """Raised when a subscription has no rules."""
 
   def __init__(self, message, index):
-    super().__init__(message, index, 'patterns')
+    super().__init__(message, index, 'rules')
 
 
 class InvalidPattern(MissingFields):
-  """Raised when a subscription has an invalid pattern.
+  """Raised when a subscription has an invalid rule.
 
   Attributes:
     pattern_index: Index of the invalid pattern definition.
@@ -75,7 +75,7 @@ class InvalidPattern(MissingFields):
   """
 
   def __init__(self, message, index, pattern_index, reason, group):
-    super().__init__(message, index, 'patterns')
+    super().__init__(message, index, 'rules')
     self.pattern_index = pattern_index
     self.reason = reason
     self.group = group

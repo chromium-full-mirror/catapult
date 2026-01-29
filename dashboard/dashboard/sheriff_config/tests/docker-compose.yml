@@ -1,4 +1,3 @@
-version: '2'
 services:
   sheriff-config-test:
     build:
@@ -8,21 +7,13 @@ services:
         emulator_host: datastore
         emulator_port: 8888
     environment:
-      - GRPC_DNS_RESOLVER=native
+      - DATASTORE_EMULATOR_HOST=datastore:8888
     depends_on:
-      - datastore-emulator
-    networks:
-      - local
-  datastore-emulator:
+      - datastore
+  datastore:
     build:
       context: datastore-emulator
       args:
-        emulator_host: datastore
+        emulator_host: 0.0.0.0
         emulator_port: 8888
         emulator_project: chromeperf
-    networks:
-      local:
-        aliases:
-          - datastore
-networks:
-  local:
