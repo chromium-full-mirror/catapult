@@ -198,6 +198,9 @@ def _ParseExtraArgs(args, is_crossbench=False):
       extra_args = json.loads(args)
     except ValueError:
       extra_args = shlex.split(args)
+  if isinstance(extra_args, str):
+    extra_args = [extra_args]
+    logging.debug('Extra args parsed as JSON has a string type: %s', extra_args)
   if not is_crossbench:
     _RearrangeExtraArgs(extra_args)
   # b/457520120#comment3. Disabling the feature for Pinpoint.
