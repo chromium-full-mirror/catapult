@@ -211,9 +211,22 @@ def GetCachedResults2(job):
   logging.info('JobQueueDebug: Finished result2. ID: %s', job.job_id)
 
   for _ in results:
-    return 'https://storage.cloud.google.com' + filename
+    return '/api/results2-serve/%s' % job.job_id
 
   return None
+
+
+def GetResults2FileContent(job):
+  """Reads the results2.html content from GCS using the service account."""
+  logging.debug('[GCSBUCKET] Job [%s]: GetResults2FileContent', job.job_id)
+  filename = _GetCloudStorageName(job.job_id)
+  logging.debug('[GCSBUCKET] Fetching results2 from GCS: %s', filename)
+  try:
+    with cloudstorage.open(filename, 'r') as gcs_file:
+      return gcs_file.read()
+  except cloudstorage.NotFoundError:
+    logging.error('Results2 file not found in GCS: %s', filename)
+    return None
 
 
 def ScheduleResults2Generation(job):

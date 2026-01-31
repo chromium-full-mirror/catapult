@@ -94,6 +94,11 @@ def Results2Handler(job_id):
   return handlers.results2.Results2Handler(job_id)
 
 
+@APP.route('/api/results2-serve/<job_id>')
+def Results2ServeHandler(job_id):
+  return handlers.results2.Results2ServeHandler(job_id)
+
+
 @APP.route('/api/generate-results2/<job_id>', methods=['POST'])
 def Results2GeneratorHandler(job_id):
   return handlers.results2.Results2GeneratorHandler(job_id)

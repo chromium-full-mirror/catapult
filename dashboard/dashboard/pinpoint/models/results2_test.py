@@ -151,9 +151,7 @@ class GetCachedResults2Test(unittest.TestCase):
     job = _JobStub(_JOB_WITH_DIFFERENCES, '123', job_state.PERFORMANCE)
     url = results2.GetCachedResults2(job)
 
-    self.assertEqual(
-        'https://storage.cloud.google.com/results2-public/'
-        '%s.html' % job.job_id, url)
+    self.assertEqual('/api/results2-serve/123', url)
 
   @mock.patch.object(utils, 'IsStagingEnvironment', lambda: True)
   def testGetCachedResults2_Cached_ReturnsResult_stage(self, mock_cloudstorage):
@@ -162,9 +160,7 @@ class GetCachedResults2Test(unittest.TestCase):
     job = _JobStub(_JOB_WITH_DIFFERENCES, '123', job_state.PERFORMANCE)
     url = results2.GetCachedResults2(job)
 
-    self.assertEqual(
-        'https://storage.cloud.google.com/chromeperf-staging-results2-public/'
-        '%s.html' % job.job_id, url)
+    self.assertEqual('/api/results2-serve/123', url)
 
   @mock.patch.object(results2, 'ScheduleResults2Generation', mock.MagicMock())
   def testGetCachedResults2_Uncached_Fails(self, mock_cloudstorage):
