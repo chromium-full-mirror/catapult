@@ -54,7 +54,6 @@ found in the LICENSE file.
   </template>
   <script>
     'use strict';
-    const _SECONDS_TO_MS = 1000;
 
     Polymer({
       is: 'index-page',
@@ -95,7 +94,8 @@ found in the LICENSE file.
                 this.client.authHeaders = {
                   Authorization: response.token_type + ' ' + response.access_token
                 };
-                this.client.expiryTime = Date.now() + (response.expires_in * _SECONDS_TO_MS);
+                // access tokens expire in seconds, convert to ms
+                this.client.expiryTime = Date.now() + (response.expires_in * 1000);
                 this.notifyPath('client.authHeaders');
                 this.client.open_dialog();
               }

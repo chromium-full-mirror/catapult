@@ -430,7 +430,6 @@ found in the LICENSE file.
     const _STATISTICS = ['avg', 'count', 'max', 'min', 'std', 'sum'];
 
     const _DEFAULT_ATTEMPT_COUNT = 10;
-    const _TOKEN_REFRESH_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
     Polymer({
       is: 'new-job-fab',
@@ -574,8 +573,9 @@ found in the LICENSE file.
 
         const headers = this.client.authHeaders;
         const expiryTime = this.client.expiryTime;
+        // Check if a valid token exists and has at least 10 minutes left.
         if (headers && headers.Authorization &&
-            expiryTime && (Date.now() + _TOKEN_REFRESH_WINDOW_MS < expiryTime)) {
+            expiryTime && (Date.now() + 10 * 60 * 1000 < expiryTime)) {
           this.$.try_dialog.open();
         } else {
           this.client.requestAccessToken({hint: this.user});
