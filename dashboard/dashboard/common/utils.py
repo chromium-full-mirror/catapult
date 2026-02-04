@@ -16,6 +16,7 @@ import six
 import six.moves.urllib.parse
 import time
 
+from flask import request, has_request_context
 from google.appengine.api import app_identity
 from google.appengine.api import memcache
 from google.appengine.api import oauth
@@ -40,6 +41,9 @@ OAUTH_ENDPOINTS = [
     '/api/', '/add_histograms', '/add_point', '/file_bug_skia',
     '/associate_alerts_skia', '/edit_anomalies_skia', '/uploads',
     '/alerts_skia', '/alerts/skia', '/sheriff_configs_skia',
+]
+_EXCLUDED_OAUTH_ENDPOINTS = [
+    '/api/results2-serve',
 ]
 DUAL_AUTH_ENDPOINTS = [
     '/pinpoint/new/bisect',
@@ -97,6 +101,37 @@ def IsStagingEnvironment():
     return False
 
 
+def _ShouldUseOAuth(request_uri, has_auth_header):
+  """Determines if the request should use OAuth based on endpoint configuration.
+
+  Args:
+    request_uri: The path of the request (e.g., /api/foo).
+    has_auth_header: True if the request contains an Authorization header.
+
+  Returns:
+    True if the request should be authenticated via OAuth.
+  """
+  is_oauth_endpoint = any(request_uri.startswith(e) for e in OAUTH_ENDPOINTS)
+  is_excluded = any(
+      request_uri.startswith(e) for e in _EXCLUDED_OAUTH_ENDPOINTS)
+  is_dual_auth_endpoint = any(
+      request_uri.startswith(e) for e in DUAL_AUTH_ENDPOINTS)
+
+  logging.debug('GetEmail: uri=%s, oauth=%s, excluded=%s, dual=%s, auth=%s',
+                request_uri, is_oauth_endpoint, is_excluded,
+                is_dual_auth_endpoint, has_auth_header)
+
+  # If the client provides a token (header), we prefer OAuth if the endpoint
+  # supports it (either as a standard OAuth endpoint or a Dual-Auth one).
+  # Also support excluded endpoints if they opt-in via header/token.
+  if has_auth_header:
+    return is_oauth_endpoint or is_dual_auth_endpoint or is_excluded
+
+  # If no header is provided, we enforce OAuth only on standard OAuth endpoints,
+  # unless they are explicitly excluded (e.g. for iframe access).
+  return is_oauth_endpoint and not is_excluded
+
+
 def GetEmail():
   """Returns email address of the current user.
 
@@ -110,14 +145,27 @@ def GetEmail():
     OAuthServiceFailureError: An unknown error occurred.
   """
   request_uri = os.environ.get('PATH_INFO', '')
-  if (any(request_uri.startswith(e) for e in OAUTH_ENDPOINTS)
-      or (any(request_uri.startswith(e) for e in DUAL_AUTH_ENDPOINTS)
-          and 'HTTP_AUTHORIZATION' in os.environ)):
+  has_auth_header = 'HTTP_AUTHORIZATION' in os.environ
+
+  # Support passing access_token in query parameter for iframe support
+  if not has_auth_header:
+    # request might not be available if not in request context,
+    # but GetEmail is always in request context
+    access_token = None
+    if has_request_context():
+      access_token = request.args.get('access_token')
+      logging.debug('GetEmail: Checking query params. Args: %s', request.args)
+    if access_token:
+      # Inject into environ so oauth.get_current_user picks it up
+      os.environ['HTTP_AUTHORIZATION'] = 'Bearer ' + access_token
+      has_auth_header = True
+
+  if _ShouldUseOAuth(request_uri, has_auth_header):
     # Prevent a CSRF whereby a malicious site posts an api request without an
     # Authorization header (so oauth.get_current_user() is None), but while the
     # user is signed in, so their cookies would make users.get_current_user()
     # return a non-None user.
-    if 'HTTP_AUTHORIZATION' not in os.environ:
+    if not has_auth_header:
       # The user is not signed in. Avoid raising OAuthRequestError.
       logging.info('Cannot get user email as the user is not signed in')
       return None

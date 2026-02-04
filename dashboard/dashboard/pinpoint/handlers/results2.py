@@ -11,9 +11,42 @@ import logging
 
 from flask import make_response, Response
 
+from dashboard.api import api_auth
+from dashboard.api import api_request_handler
 from dashboard.common import cloud_metric
+from dashboard.common import datastore_hooks
+from dashboard.common import utils
 from dashboard.pinpoint.models import job as job_module
 from dashboard.pinpoint.models import results2
+
+
+def _CheckUser():
+  if utils.IsDevAppserver():
+    return
+
+  # We shouldn't use api_auth.Authorize() here because strictly enforces OAuth
+  # client IDs which might not match if we are using query-param tokens or
+  # cookies. Instead, we just check that the user is logged in and authorized.
+  try:
+    email = utils.GetEmail()
+    if not email:
+      logging.info('No user email found for request to results2-serve.')
+      raise api_auth.NotLoggedInError
+  except utils.oauth.OAuthRequestError as e:
+    # Transient errors when checking the token result should result in HTTP 500
+    logging.exception(
+        'OAuthRequestError when checking user for results2-serve.')
+    raise api_auth.OAuthError from e
+
+  logging.info('Authenticated user: %s for results2-serve.', email)
+  if not utils.IsTryjobUser():
+    logging.warning(
+        'User %s is not authorized for results2-serve (not a tryjob user).',
+        email)
+    raise api_request_handler.ForbiddenError()
+
+  if utils.IsInternalUser():
+    datastore_hooks.SetPrivilegedRequest()
 
 
 def Results2Handler(job_id):
@@ -47,6 +80,7 @@ def Results2Handler(job_id):
 @cloud_metric.APIMetric("pinpoint", "/api/results2-serve")
 def Results2ServeHandler(job_id):
   try:
+    _CheckUser()
     job = job_module.JobFromId(job_id)
     if not job:
       raise results2.Results2Error('Error: Unknown job %s' % job_id)
@@ -64,6 +98,12 @@ def Results2ServeHandler(job_id):
                   len(html_content), job_id)
     return Response(html_content, mimetype='text/html')
 
+  except api_auth.NotLoggedInError as e:
+    return make_response(str(e), 401)
+  except api_auth.OAuthError as e:
+    return make_response(str(e), 403)
+  except api_request_handler.ForbiddenError as e:
+    return make_response(str(e), 403)
   except results2.Results2Error as e:
     return make_response(str(e), 400)
   except Exception as e:  # pylint: disable=broad-except

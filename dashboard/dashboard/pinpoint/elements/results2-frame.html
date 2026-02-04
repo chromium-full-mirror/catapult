@@ -39,7 +39,7 @@ found in the LICENSE file.
         <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1021137"
           >crbug.com/1021137</a>.</p>
       </template>
-      <iframe src="[[getStatusURL(status)]]"></iframe>
+      <iframe src="[[iframeSrc]]"></iframe>
     </template>
   </template>
 
@@ -57,13 +57,71 @@ found in the LICENSE file.
           type: Object,
           observer: '_statusChanged',
         },
+
+        client: {
+          type: Object,
+        },
+
+        user: {
+          type: String,
+        },
+
+        iframeSrc: {
+          type: String,
+          value: 'about:blank',
+        },
+
+        _authRequested: {
+          type: Boolean,
+          value: false,
+        },
       },
 
-      getStatusURL(status) {
+      observers: [
+        '_updateIframeSrc(status, client.authHeaders)'
+      ],
+
+      _updateIframeSrc(status, authHeaders) {
+        console.log('results2-frame: Updating iframe src. Status:', status, 'Headers:', authHeaders);
+        this.iframeSrc = this.getStatusURL(status, authHeaders);
+
+        // If auth headers are missing, try to authenticate once.
+        if (!authHeaders || !authHeaders.Authorization) {
+             console.log('results2-frame: Auth headers missing.');
+
+             if (this.client && this.client.requestAccessToken && !this._authRequested) {
+                 console.log('results2-frame: Requesting access token.');
+                 this._authRequested = true;
+
+                 // index-page.html calls this.client.open_dialog() when auth completes.
+                 // We define it here to reset our state.
+                 this.client.open_dialog = () => {
+                     console.log('results2-frame: Auth flow completed.');
+                     this._authRequested = false;
+                 };
+
+                 this.client.requestAccessToken({hint: this.user});
+             }
+        }
+      },
+
+      getStatusURL(status, authHeaders) {
         if (!status || !status.url) {
           return 'about:blank';
         }
-        return status.url;
+        let url = status.url;
+        if (authHeaders && authHeaders.Authorization) {
+          const token = authHeaders.Authorization.replace('Bearer ', '');
+          console.log('results2-frame: Appending token to URL.');
+          if (url.indexOf('?') === -1) {
+            url += '?access_token=' + token;
+          } else {
+            url += '&access_token=' + token;
+          }
+        } else {
+            console.log('results2-frame: Client auth headers missing.');
+        }
+        return url;
       },
 
       getStarted(status) {
