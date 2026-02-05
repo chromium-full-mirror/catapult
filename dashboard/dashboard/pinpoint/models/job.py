@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import absolute_import
 
 import datetime
+import json
 import logging
 import os
 import sys
@@ -45,6 +46,7 @@ from dashboard.services import gerrit_service
 from dashboard.services import perf_issue_service_client
 from dashboard.services import swarming
 from dashboard.services import workflow_service
+from dashboard.services import cabe_service
 
 
 # We want this to be fast to minimize overhead while waiting for tasks to
@@ -61,8 +63,6 @@ _TASK_INTERVAL = 60
 _TASK_INTERVAL_CQ = 40
 
 _CRYING_CAT_FACE = u'\U0001f63f'
-_INFINITY = u'\u221e'
-_RIGHT_ARROW = u'\u2192'
 _ROUND_PUSHPIN = u'\U0001f4cd'
 _SANDWICH = u'\U0001f96a'
 
@@ -1221,10 +1221,16 @@ class Job(ndb.Model):
           self.benchmark_arguments.story, job_run_time.total_seconds())
 
   def GetGeminiAnalysis(self):
-    """Generates Gemini analysis for the job using mock results."""
-    # TODO(wenbinzhang): Replace these mock with real gemini response.
-    msg = u"Will be something real response for job %s" % self.job_id
-    return u'\n'.join([msg] * 10)
+    """Generates Gemini analysis for the job using CABE results."""
+    # Step 1: Load CABE results for verification
+    cabe_results = cabe_service.GetCabeAnalysis(self.job_id)
+
+    if not cabe_results:
+      return u"No CABE analysis found for job %s" % self.job_id
+
+    # For now, we just return the raw JSON so we can verify the data load
+    # in the UI. We'll pass this to Gemini in the next step.
+    return u"CABE Data Loaded:\n" + json.dumps(cabe_results, indent=2)
 
 
 def _PostBugCommentDeferred(bug_id, *args, **kwargs):
