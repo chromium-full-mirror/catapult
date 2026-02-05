@@ -104,6 +104,8 @@ REPOSITORY_PROPERTY_MAP = {
             'fuchsia.global.ci',
             'turquoise-internal.integration.global.ci',
             'turquoise-internal.integration.smart.ci',
+            'fuchsia.try',
+            'turquoise-internal.integration.global.try',
         ],
         'public_buckets': [],
         'internal_buckets': [
