@@ -881,21 +881,45 @@ class Job(ndb.Model):
         improvement_dir,
         _retry_options=RETRY_OPTIONS)
 
+  def _FormatGerritComment(self, success, cabe_results):
+    icon = _ROUND_PUSHPIN if success else _CRYING_CAT_FACE
+    state = 'complete' if success else 'failed'
+
+    comment = '%s Job %s/%s %s.\n\n' % (
+        icon, self.configuration, self.benchmark_arguments.benchmark, state)
+
+    if cabe_results:
+      if cabe_results.get('Benchmark') != self.benchmark_arguments.benchmark:
+        logging.warning(
+            'Gerrit update: CABE analysis benchmark %s does not match job '
+            'benchmark %s for job %s', cabe_results.get('Benchmark'),
+            self.benchmark_arguments.benchmark, self.job_id)
+      else:
+        regression_comment = ''
+        for metric, stat in cabe_results.get('Results', {}).items():
+          change = '%s: base median = %s -> patched median = %s' % (
+              metric, stat.get('control_median',
+                               'N/A'), stat.get('treatment_median', 'N/A'))
+          regression_comment += '- %s\n' % change
+        comment += regression_comment + '\n\n'
+
+    comment += 'See results at: %s' % self.url
+
+    return comment
+
   def _UpdateGerritIfNeeded(self, success=True):
     if self.origin == _JOB_ORIGIN_CQ:
       # Do not spam on Gerrit as jobs from CQ will have results reported
       # on the Checks tab.
       return
     if self.gerrit_server and self.gerrit_change_id:
-      icon = _ROUND_PUSHPIN if success else _CRYING_CAT_FACE
-      state = 'complete' if success else 'failed'
+      cabe_results = cabe_service.GetCabeAnalysis(self.job_id)
+      comment = self._FormatGerritComment(success, cabe_results=cabe_results)
       deferred.defer(
           _UpdateGerritDeferred,
           self.gerrit_server,
           self.gerrit_change_id,
-          '%s Job %s/%s %s.\n\nSee results at: %s' %
-          (icon, self.configuration, self.benchmark_arguments.benchmark, state,
-           self.url),
+          comment,
           _retry_options=RETRY_OPTIONS,
       )
 

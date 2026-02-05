@@ -1327,7 +1327,9 @@ class BugCommentTest(test.TestCase):
         j.exception_details['message'] in j.exception.splitlines()[-1])
 
   @mock.patch('dashboard.services.gerrit_service.PostChangeComment')
-  def testCompletedUpdatesGerrit(self, post_change_comment):
+  @mock.patch('dashboard.services.cabe_service.GetCabeAnalysis')
+  def testCompletedUpdatesGerrit(self, get_cabe_analysis, post_change_comment):
+    get_cabe_analysis.return_value = None
     expected_bot = 'linux-perf'
     expected_benchmark = 'speedometer2'
     j = job.Job.New((), (),
@@ -1340,6 +1342,72 @@ class BugCommentTest(test.TestCase):
     scheduler.Schedule(j)
     j.Run()
     self.ExecuteDeferredTasks('default')
+    post_change_comment.assert_called_once_with(
+        'https://review.com', '123456',
+        _COMMENT_GERRIT_UPDATE % (expected_bot, expected_benchmark))
+
+  @mock.patch('dashboard.services.gerrit_service.PostChangeComment')
+  @mock.patch('dashboard.services.cabe_service.GetCabeAnalysis')
+  def testCompletedUpdatesGerrit_WithCabeResults(self, get_cabe_analysis,
+                                                 post_change_comment):
+    expected_bot = 'linux-perf'
+    expected_benchmark = 'speedometer2'
+    get_cabe_analysis.return_value = {
+        'Benchmark': expected_benchmark,
+        'Results': {
+            'metric_1': {
+                'control_median': 100,
+                'treatment_median': 110
+            }
+        }
+    }
+    j = job.Job.New((), (),
+                    arguments={
+                        'configuration': expected_bot,
+                        'benchmark': expected_benchmark,
+                    },
+                    gerrit_server='https://review.com',
+                    gerrit_change_id='123456')
+    scheduler.Schedule(j)
+    j.Run()
+    self.ExecuteDeferredTasks('default')
+
+    expected_comment = (
+        _COMMENT_GERRIT_UPDATE % (expected_bot, expected_benchmark)
+    ).replace(
+        'See results',
+        '- metric_1: base median = 100 -> patched median = 110\n\n\nSee results'
+    )
+    post_change_comment.assert_called_once_with('https://review.com', '123456',
+                                                expected_comment)
+
+  @mock.patch('dashboard.services.gerrit_service.PostChangeComment')
+  @mock.patch('dashboard.services.cabe_service.GetCabeAnalysis')
+  def testCompletedUpdatesGerrit_WithCabeBenchmarkMismatch(
+      self, get_cabe_analysis, post_change_comment):
+    expected_bot = 'linux-perf'
+    expected_benchmark = 'speedometer2'
+    get_cabe_analysis.return_value = {
+        'Benchmark': 'wrong_benchmark',
+        'Results': {
+            'metric_1': {
+                'control_median': 100,
+                'treatment_median': 110
+            }
+        }
+    }
+    j = job.Job.New((), (),
+                    arguments={
+                        'configuration': expected_bot,
+                        'benchmark': expected_benchmark,
+                    },
+                    gerrit_server='https://review.com',
+                    gerrit_change_id='123456')
+    scheduler.Schedule(j)
+    j.Run()
+    self.ExecuteDeferredTasks('default')
+
+    # Comment should NOT include regression info because benchmarks mismatched
     post_change_comment.assert_called_once_with(
         'https://review.com', '123456',
         _COMMENT_GERRIT_UPDATE % (expected_bot, expected_benchmark))
