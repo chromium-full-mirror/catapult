@@ -39,6 +39,27 @@ def JobHandlerGet(job_id):
   return make_response(json.dumps(job.AsDict(opts)))
 
 
+@cloud_metric.APIMetric("pinpoint", "/api/job/gemini-analysis")
+def GeminiAnalysisHandler(job_id):
+  try:
+    job = job_module.JobFromId(job_id)
+  except ValueError:
+    return make_response(
+        json.dumps({'error': 'Invalid job id: %s' % job_id}), 400)
+
+  if not job:
+    return make_response(
+        json.dumps({'error': 'Unknown job id: %s' % job_id}), 404)
+
+  analysis = job.GetGeminiAnalysis()
+
+  if analysis is None:
+    return make_response(
+        json.dumps({'error': 'Failed to generate analysis.'}), 500)
+
+  return make_response(json.dumps({'analysis': analysis}))
+
+
 def ParseRepoName(url):
   commit_repo_url = url
   if commit_repo_url.endswith('.git'):

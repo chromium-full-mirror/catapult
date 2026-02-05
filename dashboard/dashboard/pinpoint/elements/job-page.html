@@ -100,9 +100,75 @@ found in the LICENSE file.
         color: var(--paper-grey-500);
         white-space: pre-wrap;
       }
+
+      /* Gemini Analysis Styles */
+      #gemini-card {
+        background: white;
+        border: 1px solid var(--paper-grey-300);
+        border-radius: 4px;
+        margin: 24px 0;
+        padding: 16px;
+        box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+                    0 1px 5px 0 rgba(0, 0, 0, 0.12),
+                    0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        /* Auto-sizing with constraints */
+        max-height: 150px;
+        overflow-y: auto;
+      }
+
+      #gemini-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      #gemini-header h2 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 500;
+        color: var(--paper-indigo-500);
+      }
+
+      .gemini-icon {
+        width: 24px;
+        height: 24px;
+        margin-right: 8px;
+        /* Simple star icon for Gemini */
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%233F51B5"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg>');
+        background-repeat: no-repeat;
+        background-position: center;
+      }
+
+      #gemini-content {
+        line-height: 1.6;
+        color: var(--paper-grey-800);
+        white-space: pre-wrap;
+      }
+
+      .loading-container {
+        display: flex;
+        align-items: center;
+        color: var(--paper-grey-600);
+        font-style: italic;
+      }
+
+      paper-spinner {
+        margin-right: 12px;
+        width: 20px;
+        height: 20px;
+      }
     </style>
 
     <app-route route="{{route}}" pattern="/:jobId" data="{{routeData}}"></app-route>
+
+    <iron-ajax
+        id="geminiRequest"
+        url="/api/job/gemini-analysis/[[job.job_id]]"
+        handle-as="json"
+        on-response="_handleGeminiResponse"
+        on-error="_handleGeminiError"
+        loading="{{geminiLoading}}">
+    </iron-ajax>
 
     <loading-wrapper url="/api/job/[[routeData.jobId]]?o=STATE&amp;o=ESTIMATE" response="{{job}}">
       <h1>
@@ -151,6 +217,37 @@ found in the LICENSE file.
       <p class="byline">
         In queue: <a href="[[formatQueueUrl(job.configuration)]]">[[job.configuration]]</a>
       </p>
+
+      <!-- Gemini Analysis Section (Staging Only) -->
+      <template is="dom-if" if="[[showGemini]]">
+        <div id="gemini-card">
+          <div id="gemini-header">
+            <div class="gemini-icon"></div>
+            <h2>Gemini Analysis (Experimental)</h2>
+          </div>
+
+          <template is="dom-if" if="[[geminiLoading]]">
+            <div class="loading-container">
+              <paper-spinner active></paper-spinner>
+              <span>Analyzing job results...</span>
+            </div>
+          </template>
+
+          <template is="dom-if" if="[[!geminiLoading]]">
+            <div id="gemini-content">
+              <template is="dom-if" if="[[geminiAnalysis]]">
+                [[geminiAnalysis]]
+              </template>
+              <template is="dom-if" if="[[geminiError]]">
+                <span style="color: var(--paper-red-500)">
+                  Failed to load analysis: [[geminiError]]
+                </span>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
       <div id="layout">
         <div id="details-column">
           <job-details job="[[job]]" user="[[user]]"></job-details>
@@ -206,11 +303,70 @@ found in the LICENSE file.
         changeIndex: {
           type: Number
         },
-
         client: {
           type: Object,
           notify: true,
         },
+        // Gemini Analysis Properties
+        geminiAnalysis: {
+          type: String,
+          value: null
+        },
+
+        geminiError: {
+          type: String,
+          value: null
+        },
+
+        geminiLoading: {
+          type: Boolean,
+          value: false
+        },
+
+        showGemini: {
+          type: Boolean,
+          computed: '_computeShowGemini(job)'
+        }
+      },
+
+      _computeShowGemini(job) {
+        // For now, only show in staging, and only if job is loaded
+        if (!job) return false;
+        const isStaging = window.location.hostname.includes('stage');
+        return isStaging;
+      },
+
+      _fetchGeminiAnalysis() {
+        // Reset state
+        this.geminiAnalysis = null;
+        this.geminiError = null;
+
+        // Ensure we have a job ID and the feature is enabled
+        if (!this.job || !this.showGemini) return;
+
+        // Generate the request
+        this.$.geminiRequest.generateRequest();
+      },
+
+      _handleGeminiResponse(event) {
+        const response = event.detail.response;
+        if (response && response.analysis) {
+          this.geminiAnalysis = response.analysis;
+        } else {
+          this.geminiError = "No analysis returned.";
+        }
+      },
+
+      _handleGeminiError(event) {
+        // Extract error message safely
+        const error = event.detail.error;
+        let message = "Unknown error";
+        if (event.detail.request && event.detail.request.response && event.detail.request.response.error) {
+           message = event.detail.request.response.error;
+        } else if (error && error.message) {
+           message = error.message;
+        }
+        this.geminiError = message;
       },
 
       getExtraArgs(job, pos) {
@@ -226,6 +382,7 @@ found in the LICENSE file.
 
       _jobChanged() {
         this.setChangeIndex();
+        this._fetchGeminiAnalysis();
       },
 
       setChangeIndex() {

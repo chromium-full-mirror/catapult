@@ -1220,6 +1220,12 @@ class Job(ndb.Model):
           self.configuration, self.benchmark_arguments.benchmark,
           self.benchmark_arguments.story, job_run_time.total_seconds())
 
+  def GetGeminiAnalysis(self):
+    """Generates Gemini analysis for the job using mock results."""
+    # TODO(wenbinzhang): Replace these mock with real gemini response.
+    msg = u"Will be something real response for job %s" % self.job_id
+    return u'\n'.join([msg] * 10)
+
 
 def _PostBugCommentDeferred(bug_id, *args, **kwargs):
   if not bug_id:

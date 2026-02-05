@@ -43,6 +43,11 @@ def JobHandlerGet(job_id):
   return handlers.job.JobHandlerGet(job_id)
 
 
+@APP.route('/api/job/gemini-analysis/<job_id>')
+def GeminiAnalysisHandler(job_id):
+  return handlers.job.GeminiAnalysisHandler(job_id)
+
+
 @APP.route('/api/job', methods=['POST'])
 def JobHandlerPost():
   return handlers.job.JobHandlerPost()
