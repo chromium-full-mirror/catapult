@@ -10,6 +10,9 @@ from telemetry.internal.app import possible_app
 from telemetry.testing import test_utils
 
 
+class UnknownBrowserTypeError(Exception):
+  pass
+
 class PossibleBrowser(possible_app.PossibleApp):
   """A browser that can be controlled.
 

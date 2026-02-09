@@ -52,8 +52,9 @@ class PossibleDesktopBrowser(possible_browser.PossibleBrowser):
     target_os = sys.platform.lower()
     super().__init__(
         browser_type, target_os, not is_content_shell)
-    if not util.IsBuilderOutName(browser_type):
-      assert browser_type in FindAllBrowserTypes(), (
+    if not util.IsBuilderOutName(browser_type) and (
+        browser_type not in FindAllBrowserTypes()):
+      raise possible_browser.UnknownBrowserTypeError(
           'Please add %s to desktop_browser_finder.FindAllBrowserTypes' %
           browser_type)
     self._local_executable = executable
@@ -371,7 +372,9 @@ def FindAllAvailableBrowsers(finder_options, device):
 
   def AddIfFound(browser_type, build_path, app_name, content_shell):
     app = os.path.join(build_path, app_name)
-    if path_module.IsExecutable(app):
+    if not path_module.IsExecutable(app):
+      return False
+    try:
       opt = PossibleDesktopBrowser(browser_type,
                                    finder_options,
                                    app,
@@ -381,7 +384,9 @@ def FindAllAvailableBrowsers(finder_options, device):
       browsers.append(opt)
       logging.info('Potential browser option: %s' % opt)
       return True
-    return False
+    except possible_browser.UnknownBrowserTypeError as e:
+      logging.debug("Invalid browser: %s", e)
+      return False
 
   # Add local builds
   if finder_options.chromium_output_dir:
