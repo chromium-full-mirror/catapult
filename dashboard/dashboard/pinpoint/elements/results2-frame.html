@@ -66,6 +66,11 @@ found in the LICENSE file.
           type: String,
         },
 
+        limitedAccess: {
+          type: Boolean,
+          value: false,
+        },
+
         iframeSrc: {
           type: String,
           value: 'about:blank',
@@ -78,15 +83,15 @@ found in the LICENSE file.
       },
 
       observers: [
-        '_updateIframeSrc(status, client.authHeaders)'
+        '_updateIframeSrc(status, client.authHeaders, limitedAccess)'
       ],
 
-      _updateIframeSrc(status, authHeaders) {
-        console.log('results2-frame: Updating iframe src. Status:', status, 'Headers:', authHeaders);
-        this.iframeSrc = this.getStatusURL(status, authHeaders);
+      _updateIframeSrc(status, authHeaders, limitedAccess) {
+        console.log('results2-frame: Updating iframe src. Status:', status, 'Headers:', authHeaders, 'Limited Access:', limitedAccess);
+        this.iframeSrc = this.getStatusURL(status, authHeaders, limitedAccess);
 
         // If auth headers are missing, try to authenticate once.
-        if (!authHeaders || !authHeaders.Authorization) {
+        if (limitedAccess && (!authHeaders || !authHeaders.Authorization)) {
              console.log('results2-frame: Auth headers missing.');
 
              if (this.client && this.client.requestAccessToken && !this._authRequested) {
@@ -105,12 +110,12 @@ found in the LICENSE file.
         }
       },
 
-      getStatusURL(status, authHeaders) {
+      getStatusURL(status, authHeaders, limitedAccess) {
         if (!status || !status.url) {
           return 'about:blank';
         }
         let url = status.url;
-        if (authHeaders && authHeaders.Authorization) {
+        if (limitedAccess && authHeaders && authHeaders.Authorization) {
           const token = authHeaders.Authorization.replace('Bearer ', '');
           console.log('results2-frame: Appending token to URL.');
           if (url.indexOf('?') === -1) {
@@ -119,7 +124,7 @@ found in the LICENSE file.
             url += '&access_token=' + token;
           }
         } else {
-            console.log('results2-frame: Client auth headers missing.');
+            console.log('results2-frame: Skipping token append.');
         }
         return url;
       },

@@ -9,7 +9,7 @@ from __future__ import absolute_import
 import json
 import logging
 
-from flask import make_response, Response
+from flask import make_response, Response, request
 
 from dashboard.api import api_auth
 from dashboard.api import api_request_handler
@@ -80,7 +80,8 @@ def Results2Handler(job_id):
 @cloud_metric.APIMetric("pinpoint", "/api/results2-serve")
 def Results2ServeHandler(job_id):
   try:
-    _CheckUser()
+    if request.args.get('access_token'):
+      _CheckUser()
     job = job_module.JobFromId(job_id)
     if not job:
       raise results2.Results2Error('Error: Unknown job %s' % job_id)

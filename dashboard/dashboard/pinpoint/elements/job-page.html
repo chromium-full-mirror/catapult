@@ -159,7 +159,7 @@ found in the LICENSE file.
       }
     </style>
 
-    <app-route route="{{route}}" pattern="/:jobId" data="{{routeData}}"></app-route>
+    <app-route route="{{route}}" pattern="/:jobId" data="{{routeData}}" query-params="{{queryParams}}"></app-route>
 
     <iron-ajax
         id="geminiRequest"
@@ -272,7 +272,7 @@ found in the LICENSE file.
           </template>
           <template is="dom-if" if="[[!failed(job)]]">
             <template is="dom-if" if="[[isTryJob(job)]]">
-              <results2-frame job-id="[[job.job_id]]" client="{{client}}" user="[[user]]"></results2-frame>
+              <results2-frame job-id="[[job.job_id]]" client="{{client}}" user="[[user]]" limited-access="[[limitedAccess]]"></results2-frame>
             </template>
           </template>
         </div>
@@ -326,14 +326,20 @@ found in the LICENSE file.
         showGemini: {
           type: Boolean,
           computed: '_computeShowGemini(job)'
+        },
+
+        queryParams: {
+          type: Object
+        },
+
+        limitedAccess: {
+          type: Boolean,
+          computed: '_computeLimitedAccess(queryParams)'
         }
       },
 
-      _computeShowGemini(job) {
-        // For now, only show in staging, and only if job is loaded
-        if (!job) return false;
-        const isStaging = window.location.hostname.includes('stage');
-        return isStaging;
+      _computeLimitedAccess(queryParams) {
+        return queryParams && (queryParams['limited-access'] === 'True' || queryParams['limited-access'] === 'true');
       },
 
       _fetchGeminiAnalysis() {
