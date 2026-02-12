@@ -261,6 +261,50 @@ class BrowserOptionsTest(unittest.TestCase):
     self.assertIn(finder_options.browser_options.extra_browser_args,
                   possible_browser_args)
 
+  def testJsFlagsMerging(self):
+    possible_merged_args = [
+        '--js-flags=--foo,--bar,--baz', '--js-flags=--bar,--baz,--foo'
+    ]
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    parser.parse_args([
+        '--extra-browser-args=--js-flags=--foo',
+        '--js-flags=--bar,--baz',
+    ])
+    extra_args = options.browser_options.extra_browser_args
+    self.assertTrue(any(a in extra_args for a in possible_merged_args))
+
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    parser.parse_args([
+        '--js-flags=--bar,--baz',
+        '--extra-browser-args=--js-flags=--foo',
+    ])
+    extra_args = options.browser_options.extra_browser_args
+    self.assertTrue(any(a in extra_args for a in possible_merged_args))
+
+  def testJsFlagsMultiple(self):
+    possible_merged_args = [
+        '--js-flags=--foo,--bar,--baz', '--js-flags=--bar,--baz,--foo'
+    ]
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    parser.parse_args([
+        '--js-flags=--foo',
+        '--js-flags=--bar,--baz',
+    ])
+    extra_args = options.browser_options.extra_browser_args
+    self.assertTrue(any(a in extra_args for a in possible_merged_args))
+
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    parser.parse_args([
+        '--js-flags=--bar,--baz',
+        '--js-flags=--foo',
+    ])
+    extra_args = options.browser_options.extra_browser_args
+    self.assertTrue(any(a in extra_args for a in possible_merged_args))
+
 class ExtraBrowserArgsTest(unittest.TestCase):
 
   def testConsolidateFeatureArgs(self):

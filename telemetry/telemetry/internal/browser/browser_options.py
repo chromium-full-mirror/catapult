@@ -719,6 +719,10 @@ class BrowserOptions():
         dest='extra_wpr_args_as_string',
         help=('Additional arguments to pass to Web Page Replay. '
               'See third_party/web-page-replay/replay.py for usage.'))
+    group.add_argument('--js-flags',
+                       action='append',
+                       dest='js_flags_as_string',
+                       help='Specifies the flags passed to V8.')
     group.add_argument(
         '--show-stdout',
         action='store_true',
@@ -752,14 +756,10 @@ class BrowserOptions():
   def UpdateFromParseResults(self, finder_options):
     """Copies our options from finder_options."""
     browser_options_list = [
-        'extra_browser_args_as_string',
-        'extra_wpr_args_as_string',
-        'profile_dir',
-        'profile_type',
-        'show_stdout',
-        'compatibility_mode',
-        'deny_permission_prompts'
-        ]
+        'extra_browser_args_as_string', 'extra_wpr_args_as_string',
+        'profile_dir', 'profile_type', 'show_stdout', 'compatibility_mode',
+        'deny_permission_prompts', 'js_flags_as_string'
+    ]
     for o in browser_options_list:
       a = getattr(finder_options, o, None)
       if a is not None:
@@ -777,6 +777,13 @@ class BrowserOptions():
       delattr(self, 'extra_browser_args_as_string')
       self.ConsolidateValuesForArg('--enable-features')
       self.ConsolidateValuesForArg('--disable-features')
+
+    if hasattr(self, 'js_flags_as_string') and self.js_flags_as_string:
+      all_js_flags = ','.join(self.js_flags_as_string)
+      self.AppendExtraBrowserArgs('--js-flags=%s' % all_js_flags)
+      self.ConsolidateValuesForArg('--js-flags')
+      delattr(self, 'js_flags_as_string')
+
     if hasattr(self, 'extra_wpr_args_as_string'):
       tmp = shlex.split(self.extra_wpr_args_as_string, posix=(not _IsWin()))
       self.extra_wpr_args.extend(tmp)
