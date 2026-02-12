@@ -60,6 +60,10 @@
         "win_AMD64": {
           "cloud_storage_hash": "f050295e6b4a9f93a853d45ba077d5eaa4662000",
           "download_path": "bin/win/AMD64/clear_system_cache.exe"
+        },
+        "win_ARM": {
+          "cloud_storage_hash": "d7725fc4c45aa94a24b23c2900dfac7e11c22b07",
+          "download_path": "bin/win/ARM/clear_system_cache.exe"
         }
       }
     },

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env vpython3
 # Copyright 2018 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -22,16 +22,16 @@ def AddBinaryDepdendency(binary_local_path, dependency_name, platform,
       binary_manager.TELEMETRY_PROJECT_CONFIG, writable=True)
 
   if not dependency_name in config:
-    print ('%s is a new dependency. '
+    print('%s is a new dependency. '
            'Do you want to add it to Telemetry binary dependencies?')
-    answer = raw_input("Enter 'y' to answer yes: ")
+    answer = input("Enter 'y' to answer yes: ")
     if answer == 'y':
       config.AddNewDependency(
           dependency_name,
           binary_manager.TELEMETRY_BINARY_BASE_CS_FOLDER,
           binary_manager.TELEMETRY_BINARY_CS_BUCKET)
     else:
-      print 'Did not update binary for %s' % dependency_name
+      print('Did not update binary for %s' % dependency_name)
       return
 
   if not download_path:
@@ -40,12 +40,12 @@ def AddBinaryDepdendency(binary_local_path, dependency_name, platform,
         os.path.basename(binary_local_path))
     if platform.startswith('win'):
       download_path += '.exe'
-    print "Download path wasn't specified. Using default download path: %s" % (
+    print("Download path wasn't specified. Using default download path: %s" %
         download_path)
-    print 'Do you want to continue the binary update job?'
-    answer = raw_input("Enter 'y' to answer yes: ")
+    print('Do you want to continue the binary update job?')
+    answer = input("Enter 'y' to answer yes: ")
     if answer != 'y':
-      print 'Did not update binary for %s' % dependency_name
+      print('Did not update binary for %s' % dependency_name)
       return
   config.SetDownloadPath(dependency_name, platform,
       download_path=download_path)
