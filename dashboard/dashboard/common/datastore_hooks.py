@@ -106,6 +106,8 @@ def _IsServicingPrivilegedRequest():
     return True
   if path.startswith('/_ah/pipeline/'):
     return True
+  if path.startswith('/cron/fifo-scheduler'):
+    return True
   # We have been checking on utils.GetIpAllowlist() here. Though, the list
   # has been empty and we are infinite recursive calls in crbug/1402197.
   # Thus, we remove the check here.

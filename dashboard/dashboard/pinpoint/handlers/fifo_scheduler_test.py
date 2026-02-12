@@ -287,6 +287,8 @@ class FifoSchedulerExecutionEngineTest(bisection_test_util.BisectionTestBase):
             mock.MagicMock(return_value=["a"]))
 class FifoSchedulerCostModelTest(test.TestCase):
 
+  @mock.patch('dashboard.common.datastore_hooks._IsServicingPrivilegedRequest',
+              mock.MagicMock(return_value=True))
   def setUp(self):
     super().setUp()
     # We're setting up a cost model where tryjobs cost half as much as a
