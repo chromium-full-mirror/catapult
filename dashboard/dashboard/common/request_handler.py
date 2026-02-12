@@ -25,8 +25,7 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(
         [os.path.join(_DASHBOARD_PYTHON_DIR, 'templates')]),
     # Security team suggests that autoescaping be enabled.
-    autoescape=True,
-    extensions=['jinja2.ext.autoescape'])
+    autoescape=True)
 
 
 def RequestHandlerRenderHtml(template_file, template_values, status=200):

@@ -6,6 +6,10 @@ app_engine_apis: true
 # 2048MB Memory, 2.4GHz CPU limit, support auto scaling.
 instance_class: F4_1G
 
+env_variables:
+  GOOGLE_CLOUD_LOCATION: us-central1
+  GOOGLE_GENAI_USE_VERTEXAI: 'true'
+
 automatic_scaling:
   min_instances: 20
 

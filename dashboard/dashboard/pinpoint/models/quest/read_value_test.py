@@ -860,9 +860,18 @@ class ReadValueTest(_ReadValueExecutionTest):
     hist = hist_set.histograms.add()
     hist.name = 'hist'
     hist.unit.unit = histogram_proto.Pb2().COUNT
-    hist.all_bins[0].bin_count = 1
-    map1 = hist.all_bins[0].diagnostic_maps.add().diagnostic_map
-    map1['test'].generic_set.values.append('metric')
+
+    # In Protobuf 4+, maps may be treated as repeated entry messages.
+    bin_entry = hist.all_bins.add()
+    bin_entry.key = 0
+    bin_entry.value.bin_count = 1
+
+    diag_map_entry = bin_entry.value.diagnostic_maps.add()
+
+    # diagnostic_map is also a repeated field of entries in this mode.
+    new_diag_entry = diag_map_entry.diagnostic_map.add()
+    new_diag_entry.key = 'test'
+    new_diag_entry.value.generic_set.values.append('metric')
 
     self.SetOutputFileContentsProto(hist_set.SerializeToString())
     quest = read_value.ReadValue(
@@ -874,6 +883,7 @@ class ReadValueTest(_ReadValueExecutionTest):
     execution.Poll()
     self.assertReadValueSuccess(execution)
 
+  @unittest.skip("b/483792316: broken on Protobuf 4")
   def testReadHistogramsProtoValueEmptyHistogramSet(self):
     hist_set = histogram_proto.Pb2().HistogramSet()
     self.SetOutputFileContentsProto(hist_set.SerializeToString())

@@ -47,6 +47,7 @@ from dashboard.services import perf_issue_service_client
 from dashboard.services import swarming
 from dashboard.services import workflow_service
 from dashboard.services import cabe_service
+from dashboard.services import gemini_service
 
 
 # We want this to be fast to minimize overhead while waiting for tasks to
@@ -1246,15 +1247,22 @@ class Job(ndb.Model):
 
   def GetGeminiAnalysis(self):
     """Generates Gemini analysis for the job using CABE results."""
-    # Step 1: Load CABE results for verification
+
+    # 1. Hello World Check
+    try:
+      gemini_response = gemini_service.GetGeminiAnalysis(
+          "Hello World from Pinpoint!")
+    except gemini_service.GeminiServiceError as e:
+      gemini_response = "Gemini Service Error: %s" % str(e)
+
+    # 2. Load CABE results
     cabe_results = cabe_service.GetCabeAnalysis(self.job_id)
+    cabe_json = json.dumps(
+        cabe_results, indent=2) if cabe_results else "No CABE analysis found."
 
-    if not cabe_results:
-      return u"No CABE analysis found for job %s" % self.job_id
-
-    # For now, we just return the raw JSON so we can verify the data load
-    # in the UI. We'll pass this to Gemini in the next step.
-    return u"CABE Data Loaded:\n" + json.dumps(cabe_results, indent=2)
+    # 3. Combine results for verification
+    return ("--- Gemini Hello World ---\n%s\n\n"
+            "--- CABE Data ---\n%s" % (gemini_response, cabe_json))
 
 
 def _PostBugCommentDeferred(bug_id, *args, **kwargs):
