@@ -110,8 +110,8 @@ def GetReplayArgs(network_backend, supports_spki_list=True):
     if supports_spki_list:
       # Ignore certificate errors for certs that are signed with Wpr's root.
       # For more details on this flag, see crbug.com/753948.
-      wpr_public_hash_file = os.path.join(
-          util.GetCatapultDir(), 'web_page_replay_go', 'wpr_public_hash.txt')
+      wpr_public_hash_file = os.path.join(util.GetWebPageReplayDir(),
+                                          'wpr_public_hash.txt')
       if not os.path.exists(wpr_public_hash_file):
         raise exceptions.PathMissingError(
             'Unable to find %s' % wpr_public_hash_file)

@@ -13,7 +13,7 @@ and report metrics about it.  The framework abstracts:
 *   Opening a tab and navigating to the page under test.
 *   Launching an Android application with intents through ADB.
 *   Fetching data via the Inspector timeline and traces.
-*   Using [Web Page Replay](../web_page_replay_go/README.md) to
+*   Using [Web Page Replay](../third_party/webpagereplay/README.md) to
     cache real-world websites so they don’t change when used in benchmarks.
 
 ## How to run the unit tests

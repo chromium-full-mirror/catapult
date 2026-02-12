@@ -28,7 +28,7 @@ https://www.chromium.org/developers/how-tos/install-depot-tools).
 
 Then checkout the catapult repo.
 
-`git clone https://chromium.googlesource.com/catapult`
+`fetch catapult`
 
 You can then create a local branch, make and commit your change.
 

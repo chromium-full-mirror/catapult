@@ -5,8 +5,11 @@
 
 ## Check-out the code
 
+Install [depot_tools](
+https://www.chromium.org/developers/how-tos/install-depot-tools), then:
+
 ```
-git clone https://chromium.googlesource.com/catapult
+fetch https://chromium.googlesource.com/catapult
 cd catapult/netlog_viewer/netlog_viewer
 ```
 
