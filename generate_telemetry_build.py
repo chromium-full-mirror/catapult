@@ -46,6 +46,7 @@ TELEMETRY_SUPPORT_GROUP_NAME = 'telemetry_chrome_test_support'
 
 EXCLUDED_PATHS = {
     'BUILD.gn',
+    'DEPS',
     'TEMP.gn',
     'common/node_runner/',
     'docs/',
@@ -152,7 +153,7 @@ def WriteBuildFileBody(build_file, root_path, path_prefix):
     more = ProcessDir(root_path, candidate, build_file, path_prefix)
     candidates.extend(more)
 
-  build_file.write("}")
+  build_file.write("}\n")
 
 def GenerateBuildFile(root_path, output_path, chromium):
   CHROMIUM_GROUP = 'group("telemetry_chrome_test_without_chrome")'
@@ -176,7 +177,6 @@ def GenerateBuildFile(root_path, output_path, chromium):
         continue
       if CHROMIUM_GROUP in line:
         WriteBuildFileBody(build_file, root_path, CATAPULT_PREFIX + '/')
-        build_file.write('\n')
       elif CATAPULT_GROUP_NAME in line:
         line = line.replace(CATAPULT_GROUP_NAME,
                             ':' + TELEMETRY_SUPPORT_GROUP_NAME)
