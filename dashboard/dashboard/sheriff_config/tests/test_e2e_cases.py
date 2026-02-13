@@ -228,13 +228,7 @@ class LuciPollingTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 404)
-    self.assertDictEqual(
-        response.get_json(), {
-            'messages': [{
-                'severity': 'WARNING',
-                'text': 'No subscriptions matched for path: %s' % test_path
-            }]
-        })
+    self.assertDictEqual(response.get_json(), {})
 
   def testPollAndMatchWithAnomalyConfig(self):
     client = self.app.test_client()
@@ -304,13 +298,7 @@ class LuciPollingTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 404)
-    self.assertDictEqual(
-        response.get_json(), {
-            'messages': [{
-                'severity': 'WARNING',
-                'text': 'No subscriptions matched for path: %s' % test_path
-            }]
-        })
+    self.assertDictEqual(response.get_json(), {})
 
   def testMatchInvalidRequest(self):
     client = self.app.test_client()
@@ -358,68 +346,71 @@ class LuciPollingTest(unittest.TestCase):
         json={'identity_email': 'any@internal.com'},
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, 200)
-    self.assertDictEqual(
-        response.get_json(), {
-            'subscriptions': [{
-                'config_set': 'projects/project',
-                'revision': '0123456789abcdef',
-                'subscription': {
-                    'name': 'Config 1',
-                    'contact_email': 'config-1@example.com',
-                    'bug_labels': ['Some-Label'],
-                    'bug_components': ['Some>Component'],
-                    'auto_triage': {
-                        'enable': False
-                    },
-                    'auto_merge': {
-                        'enable': False
-                    },
-                    'auto_bisection': {
-                        'enable': False
-                    },
-                    'rules': {},
-                }
-            }, {
-                'config_set': 'projects/project',
-                'revision': '0123456789abcdef',
-                'subscription': {
-                    'name': 'Config 2',
-                    'contact_email': 'config-2@example.com',
-                    'bug_labels': ['Some-Label'],
-                    'bug_components': ['Some>Component'],
-                    'auto_triage': {
-                        'enable': False
-                    },
-                    'auto_merge': {
-                        'enable': False
-                    },
-                    'auto_bisection': {
-                        'enable': False
-                    },
-                    'rules': {},
-                }
-            }, {
-                'config_set': 'projects/other_project',
-                'revision': '0123456789abcdff',
-                'subscription': {
-                    'name': 'Expected 1',
-                    'monorail_project_id': 'non-chromium',
-                    'contact_email': 'expected-1@example.com',
-                    'bug_labels': ['Some-Label'],
-                    'bug_components': ['Some>Component'],
-                    'auto_triage': {
-                        'enable': False
-                    },
-                    'auto_merge': {
-                        'enable': False
-                    },
-                    'auto_bisection': {
-                        'enable': False
-                    },
-                    'rules': {},
-                }
-            }]
-        })
+    actual_response = response.get_json()
+    actual_response['subscriptions'].sort(key=lambda x: x['subscription']['name'])
+    expected_response = {
+        'subscriptions': [{
+            'config_set': 'projects/other_project',
+            'revision': '0123456789abcdff',
+            'subscription': {
+                'name': 'Expected 1',
+                'monorail_project_id': 'non-chromium',
+                'contact_email': 'expected-1@example.com',
+                'bug_labels': ['Some-Label'],
+                'bug_components': ['Some>Component'],
+                'auto_triage': {
+                    'enable': False
+                },
+                'auto_merge': {
+                    'enable': False
+                },
+                'auto_bisection': {
+                    'enable': False
+                },
+                'rules': {},
+            }
+        }, {
+            'config_set': 'projects/project',
+            'revision': '0123456789abcdef',
+            'subscription': {
+                'name': 'Config 1',
+                'contact_email': 'config-1@example.com',
+                'bug_labels': ['Some-Label'],
+                'bug_components': ['Some>Component'],
+                'auto_triage': {
+                    'enable': False
+                },
+                'auto_merge': {
+                    'enable': False
+                },
+                'auto_bisection': {
+                    'enable': False
+                },
+                'rules': {},
+            }
+        }, {
+            'config_set': 'projects/project',
+            'revision': '0123456789abcdef',
+            'subscription': {
+                'name': 'Config 2',
+                'contact_email': 'config-2@example.com',
+                'bug_labels': ['Some-Label'],
+                'bug_components': ['Some>Component'],
+                'auto_triage': {
+                    'enable': False
+                },
+                'auto_merge': {
+                    'enable': False
+                },
+                'auto_bisection': {
+                    'enable': False
+                },
+                'rules': {},
+            }
+        }]
+    }
+    expected_response['subscriptions'].sort(key=lambda x: x['subscription']['name'])
+    self.assertDictEqual(actual_response, expected_response)
     response = client.post(
         '/subscriptions/list',
         json={'identity_email': 'any@public.com'},
