@@ -29,6 +29,7 @@ from dashboard.common import utils
 from dashboard.models import anomaly
 from dashboard.models import graph_data
 from dashboard.pinpoint.models import change as change_module
+from dashboard.pinpoint.models.change import patch as patch_module
 from dashboard.pinpoint.models import errors
 from dashboard.pinpoint.models import evaluators
 from dashboard.pinpoint.models import event as event_module
@@ -1260,9 +1261,88 @@ class Job(ndb.Model):
     cabe_json = json.dumps(
         cabe_results, indent=2) if cabe_results else "No CABE analysis found."
 
+    change, revision = self.GetTryjobPatch()
+    if not change:
+      return ("--- Gemini Hello World ---\n%s\n\n"
+              "--- CABE Data ---\n%s\n\n"
+              "No Gerrit patch found for analysis." %
+              (gemini_response, cabe_json))
+
+    cl_info = gerrit_service.GetCommitRevision(self.gerrit_server, change,
+                                               revision)
+    file_list = gerrit_service.GetFileList(self.gerrit_server, change, revision)
+    file_diffs = []
+    for file in file_list:
+      diff = gerrit_service.GetFileDiff(self.gerrit_server, change, revision,
+                                        file)
+      digest = [d for d in diff if 'a' in d or 'b' in d]
+      file_diffs.append({'file': file, 'diff': digest})
+
     # 3. Combine results for verification
     return ("--- Gemini Hello World ---\n%s\n\n"
-            "--- CABE Data ---\n%s" % (gemini_response, cabe_json))
+            "--- CABE Data ---\n%s\n\n"
+            "--- CL Info ---\n%s\n\n"
+            "--- File List ---\n%s\n\n"
+            "--- File Diffs ---\n%s\n\n" %
+            (gemini_response, cabe_json, cl_info, file_list, file_diffs))
+
+  def GetTryjobPatch(self):
+    """Returns the patch change and revision for a try job.
+    This is created in order to support the Gemini analysis for try jobs.
+    As an enhancement, we want to provide the changes between the base and
+    experiment commits so that Gemini can contextualize the try job results
+    with the code changes.
+    To begin with, we will only support try jobs that are:
+     - with an experimental patch from chromium Gerrit
+     - with no base patch
+     - the base and experiment commits are the same
+    This will limited the possible changes to only those in the experimental
+    patch, which is the most common type of try jobs we see.
+
+    We can expand this in the future if needed. E.g., extracting browser
+    arguments.
+
+    Returns:
+      A tuple of (change, revision) if the job is a try job with an
+      experimental patch and no base patch, and the base and experiment
+      commits are the same. Otherwise, returns None.
+    """
+    if not self._IsTryJob():
+      logging.debug(
+          '[TryJobPatch]: Job [%s] Not a try job, skipping patch retrieval.',
+          self.job_id)
+      return None, None
+
+    arguments = self.arguments
+    logging.debug('[TryJobPatch]: Job [%s] Arguments: %s', self.job_id,
+                  arguments)
+    base_git_hash = arguments.get('base_git_hash')
+    end_git_hash = arguments.get('end_git_hash')
+
+    if base_git_hash != end_git_hash:
+      return None, None
+
+    if arguments.get('base_patch'):
+      return None, None
+
+    patch_data = arguments.get('experiment_patch')
+    if not patch_data:
+      return None, None
+
+    try:
+      host, change, revision = patch_module.GerritPatch.GetServerChangeRevisionFromUrl(
+          patch_data)
+      logging.debug(
+          '[TryJobPatch]: Job [%s] gerrit host %s, change: %s, revision: %s',
+          self.job_id, host, change, revision)
+      if 'chromium-review.googlesource.com' not in host:
+        logging.debug(
+            '[TryJobPatch]: Job [%s] Patch %s is not from chromium, skipping.',
+            self.job_id, host)
+        return None, None
+      return change, revision or 'current'
+    except (KeyError, ValueError):
+      return None, None
 
 
 def _PostBugCommentDeferred(bug_id, *args, **kwargs):

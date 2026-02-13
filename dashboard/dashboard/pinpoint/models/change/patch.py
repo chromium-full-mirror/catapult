@@ -164,6 +164,29 @@ class GerritPatch(
       KeyError: The patch doesn't have the given revision.
       ValueError: The URL has an unrecognized format.
     """
+    server, change, revision = cls.GetServerChangeRevisionFromUrl(url)
+
+    return cls.FromDict({
+        'server': server,
+        'change': int(change),
+        'revision': int(revision) if revision else None,
+    })
+
+  @classmethod
+  def GetServerChangeRevisionFromUrl(cls, url):
+    """Gets the change and revision from the given patch URL.
+
+    Args:
+      url: A patch URL string, for example:
+        https://chromium-review.googlesource.com/c/chromium/tools/build/+/679595
+    Returns:
+      A tuple of (server, change, revision), where server is the Gerrit server
+      URL, change is the change ID, and revision is the revision ID or patch
+      number. Revision may be None if not specified in the URL.
+      https://gerrit-review.googlesource.com/Documentation/rest-api-changes.html#ids
+
+    Raises:
+    """
     url_parts = urlparse.urlparse(url)
     server = urlparse.urlunsplit(
         (url_parts.scheme, url_parts.netloc, '', '', ''))
@@ -182,12 +205,7 @@ class GerritPatch(
       revision = redirector_match.group(2)
     else:
       raise errors.BuildGerritURLInvalid(url)
-
-    return cls.FromDict({
-        'server': server,
-        'change': int(change),
-        'revision': int(revision) if revision else None,
-    })
+    return server, change, revision
 
   @classmethod
   def FromDict(cls, data):

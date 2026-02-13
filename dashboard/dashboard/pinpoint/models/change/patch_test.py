@@ -212,6 +212,43 @@ class GerritPatchTest(test.TestCase):
     with self.assertRaises(errors.BuildGerritURLInvalid):
       patch.GerritPatch.FromUrl('https://example.com/not/a/gerrit/url')
 
+  def testGetServerChangeRevisionFromUrl(self):
+    # Case 1: change_rev_match with revision
+    url = 'https://chromium-review.googlesource.com/c/chromium/src/+/12345/6'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', '6'))
+
+    # Case 2: change_rev_match without revision
+    url = 'https://chromium-review.googlesource.com/c/chromium/src/+/12345'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', None))
+
+    # Case 3: change_match without trailing slash
+    url = 'https://chromium-review.googlesource.com/12345'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', None))
+
+    # Case 4: change_match with trailing slash
+    url = 'https://chromium-review.googlesource.com/12345/'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', None))
+
+    # Case 5: redirector_match with revision
+    url = 'https://chromium-review.googlesource.com/c/12345/2'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', '2'))
+
+    # Case 6: redirector_match without revision
+    url = 'https://chromium-review.googlesource.com/c/12345'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', None))
+
   def testFromDict(self):
     p = patch.GerritPatch.FromDict({
         'server': 'https://codereview.com',

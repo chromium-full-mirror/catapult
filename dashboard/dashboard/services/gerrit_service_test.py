@@ -62,3 +62,34 @@ class _SwarmingTest(unittest.TestCase):
         use_cache=False,
         method='POST',
         use_auth=True)
+
+  def testGetCommitRevision(self):
+    server = 'https://chromium-review.googlesource.com'
+    self._request_json.return_value = {'message': 'commit message'}
+    response = gerrit_service.GetCommitRevision(server, 672011, 'current')
+    self.assertEqual(response, 'commit message')
+    self._AssertRequestMadeOnce(
+        server + '/a/changes/672011/revisions/current/commit',
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)
+
+  def testGetFileList(self):
+    server = 'https://chromium-review.googlesource.com'
+    self._request_json.return_value = {'file/path': {}, '/COMMIT_MSG': {}}
+    response = gerrit_service.GetFileList(server, 672011, 'current')
+    self.assertEqual(response, ['file/path'])
+    self._AssertRequestMadeOnce(
+        server + '/a/changes/672011/revisions/current/files',
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)
+
+  def testGetFileDiff(self):
+    server = 'https://chromium-review.googlesource.com'
+    self._request_json.return_value = {'content': ['diff']}
+    response = gerrit_service.GetFileDiff(server, 672011, 'current',
+                                          'file/path')
+    self.assertEqual(response, ['diff'])
+    self._AssertRequestMadeOnce(
+        server + '/a/changes/672011/revisions/current/files/file%2Fpath/diff',
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)

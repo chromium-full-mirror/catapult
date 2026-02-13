@@ -133,6 +133,76 @@ class JobTest(test.TestCase):
     self.assertEqual(j._ImprovementDirectionToStr(anomaly.DOWN), 'DOWN')
     self.assertEqual(j._ImprovementDirectionToStr(anomaly.UNKNOWN), 'UNKNOWN')
 
+  def testGetTryjobPatch_NotTryjob(self):
+    j = job.Job.New((), (), comparison_mode='performance')
+    self.assertEqual(j.GetTryjobPatch(), (None, None))
+
+  def testGetTryjobPatch_MismatchedHashes(self):
+    j = job.Job.New((), (),
+                    comparison_mode='try',
+                    arguments={
+                        'base_git_hash': 'abc',
+                        'end_git_hash': 'def'
+                    })
+    self.assertEqual(j.GetTryjobPatch(), (None, None))
+
+  def testGetTryjobPatch_WithBasePatch(self):
+    j = job.Job.New((), (),
+                    comparison_mode='try',
+                    arguments={
+                        'base_git_hash': 'abc',
+                        'base_patch': 'some_patch'
+                    })
+    self.assertEqual(j.GetTryjobPatch(), (None, None))
+
+  def testGetTryjobPatch_NoExpPatch(self):
+    j = job.Job.New((), (),
+                    comparison_mode='try',
+                    arguments={'base_git_hash': 'abc'})
+    self.assertEqual(j.GetTryjobPatch(), (None, None))
+
+  def testGetTryjobPatch_Valid(self):
+    j = job.Job.New(
+        (), (),
+        comparison_mode='try',
+        arguments={
+            'base_git_hash':
+                'abc',
+            'end_git_hash':
+                'abc',
+            'experiment_patch':
+                'https://chromium-review.googlesource.com/c/chromium/src/+/12345/6'
+        })
+    self.assertEqual(j.GetTryjobPatch(), ('12345', '6'))
+
+  def testGetTryjobPatch_NoRevision(self):
+    j = job.Job.New(
+        (), (),
+        comparison_mode='try',
+        arguments={
+            'base_git_hash':
+                'abc',
+            'end_git_hash':
+                'abc',
+            'experiment_patch':
+                'https://chromium-review.googlesource.com/c/chromium/src/+/12345'
+        })
+    self.assertEqual(j.GetTryjobPatch(), ('12345', 'current'))
+
+  def testGetTryjobPatch_NonChromiumServer(self):
+    j = job.Job.New(
+        (), (),
+        comparison_mode='try',
+        arguments={
+            'base_git_hash':
+                'abc',
+            'end_git_hash':
+                'abc',
+            'experiment_patch':
+                'https://android-review.googlesource.com/c/platform/frameworks/base/+/12345/1'
+        })
+    self.assertEqual(j.GetTryjobPatch(), (None, None))
+
   def testGetGitHash(self):
     j = job.Job.New((), (), bug_id=123456)
     c = change.Change((change.Commit('chromium', 'test_git_hash'),))
