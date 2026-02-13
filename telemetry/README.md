@@ -125,7 +125,7 @@ sets.
        be timeline based measurements: Computing metrics on the trace makes it
        possible to compute many different metrics from the same run easily, and
        the collected trace is useful for debugging metrics values.
-        *  The current supported programming model is known as [Timeline Based Measurements v2](https://github.com/catapult-project/catapult/blob/master/docs/how-to-write-metrics.md)
+        *  The current supported programming model is known as [Timeline Based Measurements v2](https://chromium.googlesource.com/catapult/+/refs/heads/main/docs/how-to-write-metrics.md)
            **This is the current recommended method of adding metrics to telemetry**.
         *  [TBMv3](https://source.chromium.org/chromium/chromium/src/+/master:tools/perf/core/tbmv3/),
            a new version of Timeline Based Measurement based on Perfetto is

@@ -184,7 +184,7 @@ Metrics may not use the following names for Histogram-level Diagnostics.
    components](https://bugs.chromium.org/p/chromium/issues/advsearch).
  * builds is a GenericSet of numbers containing Chromium build numbers.
  * catapultRevisions is a GenericSet of strings containing
-   [Catapult](https://github.com/catapult-project/catapult) git hashes.
+   [Catapult](https://chromium.googlesource.com/catapult) git hashes.
  * chromiumCommitPositions is a GenericSet of numbers containing Chromium commit
    positions.
  * chromiumRevisions is a GenericSet of strings containing
@@ -193,7 +193,7 @@ Metrics may not use the following names for Histogram-level Diagnostics.
    documentation of the benchmarks/metrics.
  * gpus is a GenericSet of objects containing metadata about GPUs.
  * labels is a GenericSet of strings containing [user-defined
-   labels](https://github.com/catapult-project/catapult/blob/b0f1e24d4686b3ce46667c0124a186e414fbd006/telemetry/telemetry/internal/results/results_options.py#L82)
+   labels](https://chromium.googlesource.com/catapult/+/b0f1e24d4686b3ce46667c0124a186e414fbd006/telemetry/telemetry/internal/results/results_options.py#82)
    for Telemetry results.
  * logUrls is a GenericSet of strings containing URLs pointing to human-readable
    logs.

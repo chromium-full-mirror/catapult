@@ -35,7 +35,7 @@ class LegacyPageTest(LegacyPageTestBase):
   For correctness testing, please use
   serially_executed_browser_test_case.SeriallyExecutedBrowserTestCase
   instead. See examples in:
-  https://github.com/catapult-project/catapult/tree/master/telemetry/examples/browser_tests
+  https://chromium.googlesource.com/catapult/+/refs/heads/main/telemetry/examples/browser_tests
 
   Test should override ValidateAndMeasurePage to perform test
   validation and page measurement as necessary.

@@ -8,7 +8,7 @@
 ## Set Up
 
 If you just want Telemetry, cloning
-[catapult](https://github.com/catapult-project/catapult) repository should be
+[catapult](https://chromium.googlesource.com/catapult) repository should be
 enough. If you also want the Chrome benchmarks built with Telemetry, get the
 [latest Chromium checkout](https://www.chromium.org/developers/how-tos/get-the-code).
 If you're running on Mac OS X, you're all set! For Windows, Linux, Android, or

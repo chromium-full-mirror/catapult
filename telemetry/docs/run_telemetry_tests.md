@@ -1,7 +1,7 @@
 # Telemetry Tests
 
 Telemetry has few suites of unit tests:
-* telemetry_unittests in catapult: [catapult/telemetry/bin/run_tests](https://github.com/catapult-project/catapult/blob/master/telemetry/bin/run_tests). This suite verifies the core framework functions against the stable browser.
+* telemetry_unittests in catapult: [catapult/telemetry/bin/run_tests](https://chromium.googlesource.com/catapult/+/refs/heads/main/telemetry/bin/run_tests). This suite verifies the core framework functions against the stable browser.
 * telemetry_unittests in chromium repo: [src/tools/perf/run_telemetry_tests](https://cs.chromium.org/chromium/src/tools/perf/run_telemetry_tests). This suite verifies the core framework functions against your browser built in chromium environment.
 * telemetry_perf_unittests: [src/tools/perf/run_tests](https://cs.chromium.org/chromium/src/tools/perf/run_tests). This suite verifies that Chromium benchmarks are using the framework function properly.
 

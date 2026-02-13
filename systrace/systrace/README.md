@@ -6,7 +6,7 @@ Systrace
 ========
 
 Systrace relies on
-[Trace-Viewer](https://github.com/catapult-project/catapult/blob/master/tracing/README.md)
+[Trace-Viewer](https://chromium.googlesource.com/catapult/+/refs/heads/main/tracing/README.md)
 to visualize the traces. The development of Trace-Viewer and Systrace is
 decoupled by the systrace_trace_viewer.html file.
 * The update_systrace_trace_viewer.py script generates

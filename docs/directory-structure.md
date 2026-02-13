@@ -33,10 +33,10 @@ overloaded python imports.
     do not have this restriction.
   * Toplevel directories and directories in `common` should centralize all
     their path computation and sys.path manipulation in their master init file
-    ([example](https://github.com/catapult-project/catapult/blob/master/telemetry/telemetry/__init__.py)).
+    ([example](https://chromium.googlesource.com/catapult/+/refs/heads/main/telemetry/telemetry/__init__.py)).
   * Projects using web server should provide a module which defines all the
     search paths to their html & javascript resources in their top directory
-    ([example](https://github.com/catapult-project/catapult/blob/master/dashboard/dashboard_project.py)).
+    ([example](https://chromium.googlesource.com/catapult/+/refs/heads/main/dashboard/dashboard_project.py)).
   * Build code should be separate from production code. Build scripts for
     projects should be in `x/x_build/`
   * If you have a feature that has an implementation in JS and Py, then it
