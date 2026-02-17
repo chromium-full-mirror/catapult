@@ -265,3 +265,22 @@ class SheriffConfigClientTest(testing_common.TestCase):
     clt._session = self._Session(self._Response(False, 'some error message'))
     with self.assertRaises(sheriff_config_client.InternalServerError):
       clt.Match('Foo2/a/Bar2/b', check=True)
+
+  def testMatchEmpty(self):
+    clt = sheriff_config_client.SheriffConfigClient()
+    response_text = "{}"
+    clt._session = self._Session(self._Response(True, response_text))
+    self.assertEqual(clt.Match('Foo2/a/Bar2/b'), ([], None))
+
+  def testMatch404(self):
+    clt = sheriff_config_client.SheriffConfigClient()
+    response = self._Response(False, 'Not Found')
+    response.status_code = 404
+    clt._session = self._Session(response)
+    self.assertEqual(clt.Match('Foo2/a/Bar2/b'), ([], None))
+
+  def testListEmpty(self):
+    clt = sheriff_config_client.SheriffConfigClient()
+    response_text = "{}"
+    clt._session = self._Session(self._Response(True, response_text))
+    self.assertEqual(clt.List(), ([], None))

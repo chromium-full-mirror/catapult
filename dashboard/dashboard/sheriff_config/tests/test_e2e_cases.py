@@ -227,7 +227,7 @@ class LuciPollingTest(unittest.TestCase):
             }
         },
         headers={'X-Forwarded-Proto': 'https'})
-    self.assertEqual(response.status_code, 404)
+    self.assertEqual(response.status_code, 200)
     self.assertDictEqual(response.get_json(), {})
 
   def testPollAndMatchWithAnomalyConfig(self):
@@ -297,7 +297,7 @@ class LuciPollingTest(unittest.TestCase):
             }
         },
         headers={'X-Forwarded-Proto': 'https'})
-    self.assertEqual(response.status_code, 404)
+    self.assertEqual(response.status_code, 200)
     self.assertDictEqual(response.get_json(), {})
 
   def testMatchInvalidRequest(self):
@@ -435,7 +435,7 @@ class LuciContentChangesTest(unittest.TestCase):
       self.sample_config = sample_config_file.read()
     self.maxDiff = None
 
-  def AssertProjectConfigSet1Holds(self, client, expected_code):
+  def AssertProjectConfigSet1Holds(self, client, expected_code, expect_empty=False):
     response = client.post(
         '/subscriptions/match',
         json={
@@ -451,6 +451,9 @@ class LuciContentChangesTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, expected_code)
+    if expect_empty:
+      self.assertDictEqual(response.get_json(), {})
+      return
     if expected_code != 200:
       return
     response_proto = response.get_json()
@@ -479,7 +482,7 @@ class LuciContentChangesTest(unittest.TestCase):
             }]
         })
 
-  def AssertProjectConfigSet2Holds(self, client, expected_code):
+  def AssertProjectConfigSet2Holds(self, client, expected_code, expect_empty=False):
     response = client.post(
         '/subscriptions/match',
         json={
@@ -495,6 +498,9 @@ class LuciContentChangesTest(unittest.TestCase):
         },
         headers={'X-Forwarded-Proto': 'https'})
     self.assertEqual(response.status_code, expected_code)
+    if expect_empty:
+      self.assertDictEqual(response.get_json(), {})
+      return
     if expected_code != 200:
       return
     response_proto = response.get_json()
@@ -599,7 +605,7 @@ class LuciContentChangesTest(unittest.TestCase):
     # mocking utils.Time to invalid caching
     with mock.patch('utils.Time') as mock_time:
       mock_time.method.return_value = (time.time() + 60)
-      self.AssertProjectConfigSet1Holds(client, 404)
+      self.AssertProjectConfigSet1Holds(client, 200, expect_empty=True)
       self.AssertProjectConfigSet2Holds(client, 200)
 
   def testInvalidContentPulled(self):
