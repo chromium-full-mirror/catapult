@@ -42,6 +42,7 @@ ALLOWED_CLIENTS = [
     'mordeckimarcin@google.com',
     'seawardt@google.com',
     'sergeirudenkov@google.com',
+    'maximsheshukov@google.com',
 ]
 
 DATASTORE_TEST_BATCH_SIZE = 25
