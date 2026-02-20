@@ -325,7 +325,7 @@ found in the LICENSE file.
 
         showGemini: {
           type: Boolean,
-          computed: '_computeShowGemini(job)'
+          computed: '_computeShowGemini(job, queryParams)'
         },
 
         queryParams: {
@@ -338,11 +338,10 @@ found in the LICENSE file.
         }
       },
 
-      _computeShowGemini(job) {
-        // For now, only show in staging, and only if job is loaded
-        if (!job) return false;
-        const isStaging = window.location.hostname.includes('stage');
-        return isStaging;
+      _computeShowGemini(job, queryParams) {
+        // Show Gemini analysis only if job is loaded and summary=true is provided in the URL.
+        if (!job || !queryParams) return false;
+        return queryParams.summary === 'true';
       },
 
       _computeLimitedAccess(queryParams) {
