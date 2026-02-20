@@ -51,7 +51,16 @@ def GeminiAnalysisHandler(job_id):
     return make_response(
         json.dumps({'error': 'Unknown job id: %s' % job_id}), 404)
 
-  analysis = job.GetGeminiAnalysis()
+  prompt_size_limit = request.args.get('limit')
+  if prompt_size_limit:
+    try:
+      analysis = job.GetGeminiAnalysis(prompt_size_limit=int(prompt_size_limit))
+    except ValueError:
+      return make_response(
+          json.dumps({'error': 'Invalid limit value: %s' % prompt_size_limit}),
+          400)
+  else:
+    analysis = job.GetGeminiAnalysis()
 
   if analysis is None:
     return make_response(

@@ -77,7 +77,7 @@ class _SwarmingTest(unittest.TestCase):
     server = 'https://chromium-review.googlesource.com'
     self._request_json.return_value = {'file/path': {}, '/COMMIT_MSG': {}}
     response = gerrit_service.GetFileList(server, 672011, 'current')
-    self.assertEqual(response, ['file/path'])
+    self.assertEqual(response, {'file/path': {}, '/COMMIT_MSG': {}})
     self._AssertRequestMadeOnce(
         server + '/a/changes/672011/revisions/current/files',
         use_auth=True,

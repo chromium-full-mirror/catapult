@@ -68,12 +68,12 @@ def GetFileList(server_url, change_id, revision):
                     or 'current' for the latest.
 
   Returns:
-    A list of file paths for the specified revision, excluding '/COMMIT_MSG'.
+    A dictionary mapping file paths to FileInfo entities.
   """
   url = '%s/a/changes/%s/revisions/%s/files' % (server_url, change_id, revision)
   response = request.RequestJson(url, use_auth=True, scope=GERRIT_SCOPE)
   logging.debug('[TryJobPatch] GetFileList response: %s', response)
-  return [k for k in response.keys() if k != '/COMMIT_MSG']
+  return response
 
 
 def GetFileDiff(server_url, change_id, revision, file_id):

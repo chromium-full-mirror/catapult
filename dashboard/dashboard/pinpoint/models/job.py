@@ -70,6 +70,8 @@ _SANDWICH = u'\U0001f96a'
 
 _MAX_RECOVERABLE_RETRIES = 3
 
+_DEFAULT_GEMINI_PROMPT_LIMIT = 2 * 1024 * 1024  # 2MB
+
 OPTION_STATE = 'STATE'
 OPTION_TAGS = 'TAGS'
 OPTION_ESTIMATE = 'ESTIMATE'
@@ -1246,7 +1248,7 @@ class Job(ndb.Model):
           self.configuration, self.benchmark_arguments.benchmark,
           self.benchmark_arguments.story, job_run_time.total_seconds())
 
-  def GetGeminiAnalysis(self):
+  def GetGeminiAnalysis(self, prompt_size_limit=_DEFAULT_GEMINI_PROMPT_LIMIT):
     """Generates Gemini analysis for the job using CABE results."""
 
     # 1. Hello World Check
@@ -1258,8 +1260,10 @@ class Job(ndb.Model):
 
     # 2. Load CABE results
     cabe_results = cabe_service.GetCabeAnalysis(self.job_id)
-    cabe_json = json.dumps(
-        cabe_results, indent=2) if cabe_results else "No CABE analysis found."
+    if not cabe_results or not cabe_results.get('Results'):
+      return "No performance regressions detected by CABE. Analysis skipped."
+
+    cabe_json = json.dumps(cabe_results, indent=2)
 
     change, revision = self.GetTryjobPatch()
     if not change:
@@ -1270,21 +1274,120 @@ class Job(ndb.Model):
 
     cl_info = gerrit_service.GetCommitRevision(self.gerrit_server, change,
                                                revision)
-    file_list = gerrit_service.GetFileList(self.gerrit_server, change, revision)
-    file_diffs = []
-    for file in file_list:
-      diff = gerrit_service.GetFileDiff(self.gerrit_server, change, revision,
-                                        file)
-      digest = [d for d in diff if 'a' in d or 'b' in d]
-      file_diffs.append({'file': file, 'diff': digest})
+    file_info_map = gerrit_service.GetFileList(self.gerrit_server, change,
+                                               revision)
 
-    # 3. Combine results for verification
-    return ("--- Gemini Hello World ---\n%s\n\n"
-            "--- CABE Data ---\n%s\n\n"
-            "--- CL Info ---\n%s\n\n"
-            "--- File List ---\n%s\n\n"
-            "--- File Diffs ---\n%s\n\n" %
-            (gemini_response, cabe_json, cl_info, file_list, file_diffs))
+    # 3. Construct the prompt template and calculate static size
+    prompt_template = """
+You are a Senior Performance Engineer. Your goal is to analyze whether a specific code change (CL) caused a performance regression.
+
+### Context
+- **Benchmark**: {benchmark}
+- **Story**: {story}
+- **Bot**: {bot}
+
+### Performance Analysis (CABE)
+The following data shows the statistical analysis of performance metrics before and after the change. Focus on metrics with significant regressions.
+{cabe_json}
+
+### Code Change (Gerrit CL)
+**Change-ID**: {change_id}
+**Revision**: {revision}
+**Commit Message**:
+{commit_message}
+
+**Affected Files**:
+{file_list}
+
+**Unified Diffs**:
+{file_diffs}
+
+### Task
+Analyze the code changes and the performance metrics.
+1. **Benchmark Context**: Leverage your knowledge of the `{benchmark}` benchmark and the specific metrics mentioned in the CABE results. Explain how these metrics relate to user-visible performance or system resources.
+2. **Identify**: Does the code change logically explain the regression in the metrics? (e.g., adding a loop explaining increased CPU time, adding a large dependency explaining increased binary size, or changing a cache policy).
+3. **Evidence**: Cite specific lines from the diff that are the likely root cause.
+4. **Fix Suggestion**: If possible, suggest a specific code fix or optimization strategy to mitigate the regression.
+5. **Verdict**: Conclusion on whether this CL is the culprit.
+
+**Important**: Start your response directly with the Markdown summary. Do not include any introductory greetings, conversational filler (e.g., "Of course", "As a Senior Engineer"), or meta-commentary.
+
+Provide your response in a clear, Markdown-formatted summary.
+"""
+    file_list_str = "\n".join(["- " + f for f in file_info_map.keys()])
+    static_prompt = prompt_template.format(
+        benchmark=self.benchmark_arguments.benchmark,
+        story=self.benchmark_arguments.story,
+        bot=self.configuration,
+        cabe_json=cabe_json,
+        change_id=change,
+        revision=revision,
+        commit_message=cl_info,
+        file_list=file_list_str,
+        file_diffs="")
+
+    # Calculate remaining budget for diffs
+    remaining_budget = prompt_size_limit - len(static_prompt)
+    file_diffs = []
+    logging.debug(
+        '[TryJobPatch] Remaining prompt budget for diffs: %d characters',
+        remaining_budget)
+
+    for file_path, info in file_info_map.items():
+      if remaining_budget <= 0:
+        logging.warning(
+            '[TryJobPatch] Prompt size limit reached, skipping remaining files.'
+        )
+        break
+
+      if file_path == '/COMMIT_MSG' or info.get('binary'):
+        continue
+
+      diff_info = gerrit_service.GetFileDiff(self.gerrit_server, change,
+                                             revision, file_path)
+      formatted_diff = self._FormatGerritDiff(file_path, diff_info)
+
+      if len(formatted_diff) > remaining_budget:
+        logging.warning(
+            '[TryJobPatch] File %s too large (%d), skipping to stay under limit.',
+            file_path, len(formatted_diff))
+        continue
+
+      file_diffs.append(formatted_diff)
+      remaining_budget -= len(formatted_diff)
+
+    final_prompt = prompt_template.format(
+        benchmark=self.benchmark_arguments.benchmark,
+        story=self.benchmark_arguments.story,
+        bot=self.configuration,
+        cabe_json=cabe_json,
+        change_id=change,
+        revision=revision,
+        commit_message=cl_info,
+        file_list=file_list_str,
+        file_diffs="\n".join(file_diffs))
+
+    try:
+      gemini_response = gemini_service.GetGeminiAnalysis(final_prompt)
+    except gemini_service.GeminiServiceError as e:
+      return "Gemini Analysis Failed: %s" % str(e)
+
+    return gemini_response
+
+  def _FormatGerritDiff(self, file_path, diff_info):
+    """Formats Gerrit's JSON diff format into a readable unified-diff-like string."""
+    lines = ['--- %s' % file_path, '+++ %s' % file_path]
+    for chunk in diff_info:
+      if 'ab' in chunk:
+        for line in chunk['ab']:
+          lines.append('  ' + line)
+      if 'a' in chunk:
+        for line in chunk['a']:
+          lines.append('- ' + line)
+      if 'b' in chunk:
+        for line in chunk['b']:
+          lines.append('+ ' + line)
+    return "\n".join(lines)
 
   def GetTryjobPatch(self):
     """Returns the patch change and revision for a try job.
