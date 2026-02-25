@@ -185,7 +185,7 @@ COMPONENT_MAP_B2CR = {
   '1565682': 'webrtc',
 
   # Test only. Remove after migration.
-  '1325852' : 'MigratedProject'
+  '1325852' : 'chromium'
 }
 
 # Mapping from monorail project to all the related components in buganizer
@@ -197,7 +197,7 @@ PROJECT_MAP_CR2B = {
     '1456519', '1456587', '1456597', '1456675', '1456683', '1456718', '1456721',
     '1456742', '1456743', '1456771', '1456822', '1456824', '1457031', '1457059',
     '1457150', '1457163', '1457180', '1457213', '1457234', '1457293', '1457332',
-    '1456190', '1457390', '1456420'
+    '1456190', '1457390', '1456420', '1325852'
     ],
 
   # Fuchsia
@@ -205,9 +205,6 @@ PROJECT_MAP_CR2B = {
 
   # webrtc
   'webrtc': ['1565681', '1565993', '1565890', '1565319', '1565864', '1565682'],
-
-  # Test only. Remove after migration.
-  'MigratedProject': ['1325852']
 }
 
 # Mappings from a monorail label to a buganizer hotlist, if any.

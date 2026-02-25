@@ -12,8 +12,6 @@ BUGANIZER_PROJECTS = {
   "fuchsia": "buganizer",
   "chromium": "buganizer",
   "webrtc": "buganizer",
-  # Test
-  "MigratedProject": "buganizer",
   "ReadOnlyProject": "none"
 }
 
