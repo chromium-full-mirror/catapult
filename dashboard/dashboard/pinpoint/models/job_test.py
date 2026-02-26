@@ -291,11 +291,11 @@ class JobTest(test.TestCase):
     mock_diff.return_value = [{'a': ['old'] * 20, 'b': ['new'] * 20}]
     mock_gemini.return_value = 'Summary'
 
-    # The static prompt is quite large (~1700 chars).
+    # The static prompt is quite large.
     # Set limit to fit static prompt + 1 file, but not 2.
     # We'll calculate a safe limit by first getting the static prompt size or just
     # using a value that we know is slightly above the threshold.
-    analysis = j.GetGeminiAnalysis(prompt_size_limit=2000)
+    analysis = j.GetGeminiAnalysis(prompt_size_limit=2500)
 
     self.assertEqual(analysis, 'Summary')
     # Second call contains the analysis prompt

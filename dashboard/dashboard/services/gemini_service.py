@@ -10,7 +10,7 @@ import logging
 import os
 from google import genai
 
-_DEFAULT_MODEL = 'gemini-2.5-pro'
+_DEFAULT_MODEL = 'gemini-3-flash-preview'
 
 
 class GeminiServiceError(Exception):

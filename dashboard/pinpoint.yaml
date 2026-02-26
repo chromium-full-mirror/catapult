@@ -7,7 +7,7 @@ app_engine_apis: true
 instance_class: F4_1G
 
 env_variables:
-  GOOGLE_CLOUD_LOCATION: us-central1
+  GOOGLE_CLOUD_LOCATION: global
   GOOGLE_GENAI_USE_VERTEXAI: 'true'
 
 automatic_scaling:

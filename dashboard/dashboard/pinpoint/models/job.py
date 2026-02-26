@@ -1277,22 +1277,29 @@ class Job(ndb.Model):
     file_info_map = gerrit_service.GetFileList(self.gerrit_server, change,
                                                revision)
 
+    # 2.5 Define Benchmark Knowledge
+    benchmark_knowledge = (
+        "- For Speedometer3, the 'Score' metric improvement direction is UP (higher is better). "
+        "For all other metrics, the improvement direction is DOWN (lower is better).\n"
+        "- For JetStream2, the improvement direction is always UP (higher is better)."
+    )
+
     # 3. Construct the prompt template and calculate static size
     prompt_template = """
-You are a Senior Performance Engineer. Your goal is to analyze whether a specific code change (CL) caused a performance regression.
+You are a Senior Performance Engineer and Chromium expert. Your goal is to determine if a specific code change (CL) is the root cause of a performance regression.
 
 ### Context
 - **Benchmark**: {benchmark}
 - **Story**: {story}
 - **Bot**: {bot}
+- **Benchmark Knowledge**: {benchmark_knowledge}
 
-### Performance Analysis (CABE)
-The following data shows the statistical analysis of performance metrics before and after the change. Focus on metrics with significant regressions.
+### 1. Performance Data (CABE)
+Analyze these results. Focus on metrics with a low p-value and significant delta.
 {cabe_json}
 
-### Code Change (Gerrit CL)
-**Change-ID**: {change_id}
-**Revision**: {revision}
+### 2. Code Change (Gerrit CL)
+**Change-ID**: {change_id} | **Revision**: {revision}
 **Commit Message**:
 {commit_message}
 
@@ -1302,23 +1309,40 @@ The following data shows the statistical analysis of performance metrics before 
 **Unified Diffs**:
 {file_diffs}
 
-### Task
-Analyze the code changes and the performance metrics.
-1. **Benchmark Context**: Leverage your knowledge of the `{benchmark}` benchmark and the specific metrics mentioned in the CABE results. Explain how these metrics relate to user-visible performance or system resources.
-2. **Identify**: Does the code change logically explain the regression in the metrics? (e.g., adding a loop explaining increased CPU time, adding a large dependency explaining increased binary size, or changing a cache policy).
-3. **Evidence**: Cite specific lines from the diff that are the likely root cause.
-4. **Fix Suggestion**: If possible, suggest a specific code fix or optimization strategy to mitigate the regression.
-5. **Verdict**: Conclusion on whether this CL is the culprit.
+### Instructions
+Provide your analysis in the following Markdown format:
 
-**Important**: Start your response directly with the Markdown summary. Do not include any introductory greetings, conversational filler (e.g., "Of course", "As a Senior Engineer"), or meta-commentary.
+#### 📊 Regression Summary
+(A Markdown table listing the most significant affected metrics, their % change, and p-value).
 
-Provide your response in a clear, Markdown-formatted summary.
+#### 🔍 Hypothesis
+(Explain the technical mechanism by which the code change could have caused the observed metric changes. If no logical link exists, state why.)
+
+#### 🛠️ Evidence & Root Cause
+- **File**: `path/to/file.cc`
+- **Code**: `Specific line or snippet`
+- **Reasoning**: Why this specific change is responsible.
+
+#### 💡 Fix Suggestion
+(Provide a specific optimization or a different architectural approach to resolve the regression.)
+
+#### ⚖️ Verdict
+**Final Decision**: [CULPRIT / NOT CULPRIT / INCONCLUSIVE]
+**Confidence Score**: [1-10]/10
+
+**Important Constraints**:
+- Ensure the Regression Summary table is the very first section of your response.
+- Do not use conversational filler ("I have analyzed...", "Based on the diff...").
+- Be technical and precise (e.g., use terms like "main thread jank", "binary size bloat", "cache miss").
+- If the diff is irrelevant to the metrics (e.g., a documentation change for a CPU regression), boldly state **NOT CULPRIT**.
+- State which Gemini model version you are at the end of the analysis.
 """
     file_list_str = "\n".join(["- " + f for f in file_info_map.keys()])
     static_prompt = prompt_template.format(
         benchmark=self.benchmark_arguments.benchmark,
         story=self.benchmark_arguments.story,
         bot=self.configuration,
+        benchmark_knowledge=benchmark_knowledge,
         cabe_json=cabe_json,
         change_id=change,
         revision=revision,
@@ -1360,6 +1384,7 @@ Provide your response in a clear, Markdown-formatted summary.
         benchmark=self.benchmark_arguments.benchmark,
         story=self.benchmark_arguments.story,
         bot=self.configuration,
+        benchmark_knowledge=benchmark_knowledge,
         cabe_json=cabe_json,
         change_id=change,
         revision=revision,
