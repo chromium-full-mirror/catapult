@@ -3288,6 +3288,12 @@ class DeviceUtils(object):
     return _EMULATOR_RE.match(self.GetProp('ro.product.device', cache=True))
 
   @property
+  def is_desktop(self):
+    """Returns whether the device is an Android Desktop device."""
+    characteristics = self.GetProp('ro.build.characteristics', cache=True)
+    return characteristics and 'desktop' in characteristics.split(',')
+
+  @property
   def build_description(self):
     """Returns the build description of the system.
 
