@@ -205,6 +205,8 @@ class GerritPatch(
       revision = redirector_match.group(2)
     else:
       raise errors.BuildGerritURLInvalid(url)
+
+    server = server.replace('.git.corp.google.com', '.googlesource.com')
     return server, change, revision
 
   @classmethod

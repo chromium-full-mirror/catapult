@@ -249,6 +249,12 @@ class GerritPatchTest(test.TestCase):
         patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
         ('https://chromium-review.googlesource.com', '12345', None))
 
+    # Case 7: git.corp.google.com URL
+    url = 'https://chromium-review.git.corp.google.com/c/chromium/src/+/12345/6'
+    self.assertEqual(
+        patch.GerritPatch.GetServerChangeRevisionFromUrl(url),
+        ('https://chromium-review.googlesource.com', '12345', '6'))
+
   def testFromDict(self):
     p = patch.GerritPatch.FromDict({
         'server': 'https://codereview.com',
