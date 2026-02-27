@@ -6,6 +6,10 @@ found in the LICENSE file.
 -->
 
 <link rel="import" href="/components/app-route/app-route.html">
+<link rel="import" href="/components/iron-ajax/iron-ajax.html">
+<link rel="import" href="/components/iron-icon/iron-icon.html">
+<link rel="import" href="/components/iron-icons/iron-icons.html">
+<link rel="import" href="/components/paper-fab/paper-fab.html">
 <link rel="import" href="/components/paper-toast/paper-toast.html">
 <link rel="import" href="/components/paper-tooltip/paper-tooltip.html">
 
@@ -107,42 +111,99 @@ found in the LICENSE file.
         border: 1px solid var(--paper-grey-300);
         border-radius: 4px;
         margin: 24px 0;
-        padding: 16px;
+        padding: 0; /* Padding moved to inner elements */
         box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
                     0 1px 5px 0 rgba(0, 0, 0, 0.12),
                     0 3px 1px -2px rgba(0, 0, 0, 0.2);
-        /* Auto-sizing with constraints */
-        max-height: 150px;
-        overflow-y: auto;
+        max-height: 500px;
+        transition: max-height 0.3s ease-in-out;
+        overflow: hidden;
+      }
+
+      #gemini-card[collapsed] {
+        max-height: 48px; /* Height of header only */
       }
 
       #gemini-header {
         display: flex;
         align-items: center;
-        margin-bottom: 12px;
+        padding: 12px 16px;
+        cursor: pointer;
+        user-select: none;
       }
 
       #gemini-header h2 {
         margin: 0;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         font-weight: 500;
         color: var(--paper-indigo-500);
+        flex-grow: 1;
       }
 
       .gemini-icon {
         width: 24px;
         height: 24px;
         margin-right: 8px;
-        /* Simple star icon for Gemini */
         background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%233F51B5"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5z"/></svg>');
         background-repeat: no-repeat;
         background-position: center;
       }
 
+      .toggle-icon {
+        transition: transform 0.3s;
+      }
+
+      #gemini-card[collapsed] .toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      #gemini-content-wrapper {
+        padding: 0 16px 16px 16px;
+        overflow-y: auto;
+        max-height: 430px;
+      }
+
       #gemini-content {
         line-height: 1.6;
         color: var(--paper-grey-800);
-        white-space: pre-wrap;
+      }
+
+      #gemini-content table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 16px 0;
+      }
+
+      #gemini-content th, #gemini-content td {
+        border: 1px solid var(--paper-grey-300);
+        padding: 8px 12px;
+        text-align: left;
+      }
+
+      #gemini-content th {
+        background-color: var(--paper-grey-100);
+        font-weight: 500;
+      }
+
+      #gemini-content tr:nth-child(even) {
+        background-color: var(--paper-grey-50);
+      }
+
+      #gemini-content pre {
+        background-color: var(--paper-grey-100);
+        padding: 12px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-family: monospace;
+        margin: 16px 0;
+        white-space: pre;
+      }
+
+      #gemini-content code {
+        font-family: monospace;
+        background-color: var(--paper-grey-100);
+        padding: 2px 4px;
+        border-radius: 2px;
       }
 
       .loading-container {
@@ -220,28 +281,33 @@ found in the LICENSE file.
 
       <!-- Gemini Analysis Section (Staging Only) -->
       <template is="dom-if" if="[[showGemini]]">
-        <div id="gemini-card">
-          <div id="gemini-header">
+        <div id="gemini-card" collapsed$="[[!geminiExpanded]]">
+          <div id="gemini-header" on-click="_toggleGemini">
             <div class="gemini-icon"></div>
-            <h2>Gemini Analysis (Experimental)</h2>
+            <h2>[[geminiTitle]]</h2>
+            <iron-icon class="toggle-icon" icon="expand-more"></iron-icon>
           </div>
 
-          <template is="dom-if" if="[[geminiLoading]]">
-            <div class="loading-container">
-              <paper-spinner active></paper-spinner>
-              <span>Analyzing job results...</span>
-            </div>
-          </template>
-
-          <template is="dom-if" if="[[!geminiLoading]]">
-            <div id="gemini-content">
-              <template is="dom-if" if="[[geminiAnalysis]]">
-                [[geminiAnalysis]]
+          <template is="dom-if" if="[[geminiExpanded]]">
+            <div id="gemini-content-wrapper">
+              <template is="dom-if" if="[[geminiLoading]]">
+                <div class="loading-container">
+                  <paper-spinner active></paper-spinner>
+                  <span>Analyzing job results...</span>
+                </div>
               </template>
-              <template is="dom-if" if="[[geminiError]]">
-                <span style="color: var(--paper-red-500)">
-                  Failed to load analysis: [[geminiError]]
-                </span>
+
+              <template is="dom-if" if="[[!geminiLoading]]">
+                <div id="gemini-content">
+                  <template is="dom-if" if="[[geminiAnalysis]]">
+                    <div id="markdown-container"></div>
+                  </template>
+                  <template is="dom-if" if="[[geminiError]]">
+                    <span style="color: var(--paper-red-500)">
+                      Failed to load analysis: [[geminiError]]
+                    </span>
+                  </template>
+                </div>
               </template>
             </div>
           </template>
@@ -310,7 +376,8 @@ found in the LICENSE file.
         // Gemini Analysis Properties
         geminiAnalysis: {
           type: String,
-          value: null
+          value: null,
+          observer: '_renderMarkdown'
         },
 
         geminiError: {
@@ -328,6 +395,16 @@ found in the LICENSE file.
           computed: '_computeShowGemini(job, queryParams)'
         },
 
+        geminiExpanded: {
+          type: Boolean,
+          value: false
+        },
+
+        geminiTitle: {
+          type: String,
+          computed: '_computeGeminiTitle(geminiAnalysis, geminiLoading, geminiError)'
+        },
+
         queryParams: {
           type: Object
         },
@@ -336,6 +413,137 @@ found in the LICENSE file.
           type: Boolean,
           computed: '_computeLimitedAccess(queryParams)'
         }
+      },
+
+      _toggleGemini() {
+        this.geminiExpanded = !this.geminiExpanded;
+      },
+
+      _renderMarkdown(markdown) {
+        if (!markdown) return;
+
+        // Polymer's dom-if might not have rendered the container yet.
+        const container = this.$$ ? this.$$('div#markdown-container') :
+                          this.shadowRoot ? this.shadowRoot.querySelector('#markdown-container') :
+                          document.getElementById('markdown-container');
+
+        if (!container) {
+          this.async(() => this._renderMarkdown(markdown), 100);
+          return;
+        }
+
+        // Extremely simple Markdown to HTML converter
+        let html = markdown
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+
+        // Headers
+        html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
+        html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+        html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+        html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+        // Bold
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+        // Lists
+        html = html.replace(/^\s*-\s+(.*$)/gim, '<ul><li>$1</li></ul>');
+        html = html.replace(/<\/ul>\s*<ul>/g, '');
+
+        // Tables and Code Blocks
+        const lines = html.split('\n');
+        let inTable = false;
+        let inCodeBlock = false;
+        let tableHtml = '';
+        const newLines = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+
+          // Code blocks
+          if (line.startsWith('```')) {
+            if (!inCodeBlock) {
+              inCodeBlock = true;
+              newLines.push('<pre><code>');
+            } else {
+              inCodeBlock = false;
+              newLines.push('</code></pre>');
+            }
+            continue;
+          }
+
+          if (inCodeBlock) {
+            newLines.push(lines[i]); // Keep original line for code blocks
+            continue;
+          }
+
+          // Tables
+          if (line.startsWith('|') && line.endsWith('|')) {
+            if (!inTable) {
+              inTable = true;
+              tableHtml = '<table>';
+            }
+            // Skip the separator line (|---|)
+            if (line.includes('---')) continue;
+
+            const cells = line.split('|').filter(c => c.length > 0);
+            const tag = tableHtml === '<table>' ? 'th' : 'td';
+            tableHtml += '<tr>' + cells.map(c => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+          } else {
+            if (inTable) {
+              tableHtml += '</table>';
+              newLines.push(tableHtml);
+              inTable = false;
+            }
+            newLines.push(line);
+          }
+        }
+        if (inTable) newLines.push(tableHtml + '</table>');
+        if (inCodeBlock) newLines.push('</code></pre>');
+
+        // Join with nothing because we've already added <br> or <pre> manually
+        // Wait, better to join with <br> for non-code lines.
+        let finalHtml = '';
+        let currentInCode = false;
+        for (let i = 0; i < newLines.length; i++) {
+          if (newLines[i] === '<pre><code>') {
+            currentInCode = true;
+            finalHtml += newLines[i];
+          } else if (newLines[i] === '</code></pre>') {
+            currentInCode = false;
+            finalHtml += newLines[i];
+          } else if (currentInCode || newLines[i].startsWith('<table')) {
+            finalHtml += newLines[i] + '\n';
+          } else {
+            finalHtml += newLines[i] + '<br>';
+          }
+        }
+        container.innerHTML = finalHtml;
+      },
+
+      _computeGeminiTitle(geminiAnalysis, geminiLoading, geminiError) {
+        const base = 'Gemini Analysis (Experimental)';
+        if (geminiLoading) {
+          return base + ': Analyzing job results...';
+        }
+        if (geminiError) {
+          return base + ': Error loading analysis';
+        }
+        if (geminiAnalysis) {
+          if (geminiAnalysis.includes('No performance regressions detected')) {
+            return base + ': Regression detected: No';
+          }
+
+          if (geminiAnalysis.includes('No Gerrit patch found')) {
+            return base + ': Regression detected: Yes (No patch to analyze)';
+          }
+
+          // If we have an analysis string (that isn't one of the skip messages above),
+          // CABE has detected a regression.
+          return base + ': Regression detected: Yes';
+        }
+        return base;
       },
 
       _computeShowGemini(job, queryParams) {
@@ -352,6 +560,7 @@ found in the LICENSE file.
         // Reset state
         this.geminiAnalysis = null;
         this.geminiError = null;
+        this.geminiExpanded = false;
 
         // Ensure we have a job ID and the feature is enabled
         if (!this.job || !this.showGemini) return;

@@ -251,9 +251,9 @@ class JobTest(test.TestCase):
     analysis = j.GetGeminiAnalysis()
 
     self.assertEqual(analysis, 'Gemini Summary')
-    self.assertEqual(mock_gemini.call_count, 2)
-    # Ensure CABE and CL info are in the second call
-    call_args = mock_gemini.call_args_list[1][0][0]
+    self.assertEqual(mock_gemini.call_count, 1)
+    # Ensure CABE and CL info are in the call
+    call_args = mock_gemini.call_args_list[0][0][0]
     self.assertIn('Commit message', call_args)
     self.assertIn('"d": 1\n', call_args)
     self.assertIn('--- file.cc', call_args)
@@ -295,11 +295,11 @@ class JobTest(test.TestCase):
     # Set limit to fit static prompt + 1 file, but not 2.
     # We'll calculate a safe limit by first getting the static prompt size or just
     # using a value that we know is slightly above the threshold.
-    analysis = j.GetGeminiAnalysis(prompt_size_limit=2500)
+    analysis = j.GetGeminiAnalysis(prompt_size_limit=2700)
 
     self.assertEqual(analysis, 'Summary')
     # Second call contains the analysis prompt
-    call_args = mock_gemini.call_args_list[1][0][0]
+    call_args = mock_gemini.call_args_list[0][0][0]
     self.assertIn('--- file1.cc', call_args)
     self.assertNotIn('--- file2.cc', call_args)
 

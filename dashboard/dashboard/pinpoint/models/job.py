@@ -1251,42 +1251,36 @@ class Job(ndb.Model):
   def GetGeminiAnalysis(self, prompt_size_limit=_DEFAULT_GEMINI_PROMPT_LIMIT):
     """Generates Gemini analysis for the job using CABE results."""
 
-    # 1. Hello World Check
-    try:
-      gemini_response = gemini_service.GetGeminiAnalysis(
-          "Hello World from Pinpoint!")
-    except gemini_service.GeminiServiceError as e:
-      gemini_response = "Gemini Service Error: %s" % str(e)
-
-    # 2. Load CABE results
+    # 1. Load CABE results
     cabe_results = cabe_service.GetCabeAnalysis(self.job_id)
+    logging.debug('CABE results for job %s: %s', self.job_id, cabe_results)
     if not cabe_results or not cabe_results.get('Results'):
-      return "No performance regressions detected by CABE. Analysis skipped."
+      return "No performance regressions detected. Analysis skipped."
 
     cabe_json = json.dumps(cabe_results, indent=2)
 
+    # 2. Get the patch information if available
     change, revision = self.GetTryjobPatch()
     if not change:
-      return ("--- Gemini Hello World ---\n%s\n\n"
-              "--- CABE Data ---\n%s\n\n"
-              "No Gerrit patch found for analysis." %
-              (gemini_response, cabe_json))
+      return ("--- Performance Data ---\n%s\n\n"
+              "No Gerrit patch found for analysis." % cabe_json)
 
+    # 3. Get CL information from Gerrit
     cl_info = gerrit_service.GetCommitRevision(self.gerrit_server, change,
                                                revision)
     file_info_map = gerrit_service.GetFileList(self.gerrit_server, change,
                                                revision)
 
-    # 2.5 Define Benchmark Knowledge
+    # 4. Define Benchmark Knowledge
     benchmark_knowledge = (
         "- For Speedometer3, the 'Score' metric improvement direction is UP (higher is better). "
         "For all other metrics, the improvement direction is DOWN (lower is better).\n"
         "- For JetStream2, the improvement direction is always UP (higher is better)."
     )
 
-    # 3. Construct the prompt template and calculate static size
+    # 5. Construct the prompt template and calculate static size
     prompt_template = """
-You are a Senior Performance Engineer and Chromium expert. Your goal is to determine if a specific code change (CL) is the root cause of a performance regression.
+You are a Senior Performance Engineer and Chromium expert. Your goal is to investigate if there is a technical link between a specific code change (CL) and an observed performance regression.
 
 ### Context
 - **Benchmark**: {benchmark}
@@ -1295,7 +1289,7 @@ You are a Senior Performance Engineer and Chromium expert. Your goal is to deter
 - **Benchmark Knowledge**: {benchmark_knowledge}
 
 ### 1. Performance Data (CABE)
-Analyze these results. Focus on metrics with a low p-value and significant delta.
+Analyze these results. Look for metrics with significant regressions (low p-value, high delta).
 {cabe_json}
 
 ### 2. Code Change (Gerrit CL)
@@ -1310,31 +1304,31 @@ Analyze these results. Focus on metrics with a low p-value and significant delta
 {file_diffs}
 
 ### Instructions
-Provide your analysis in the following Markdown format:
+Provide an objective analysis in the following Markdown format:
 
 #### 📊 Regression Summary
-(A Markdown table listing the most significant affected metrics, their % change, and p-value).
+(A Markdown table listing the affected metrics, their % change, and p-value).
 
-#### 🔍 Hypothesis
-(Explain the technical mechanism by which the code change could have caused the observed metric changes. If no logical link exists, state why.)
+#### 🔍 Root Cause Analysis
+(Provide a technical investigation. Does the code change logically explain the metric changes? E.g., does it add computational complexity, increase memory usage, or affect a critical path? If the code change appears irrelevant to the metrics, explicitly state why.)
 
-#### 🛠️ Evidence & Root Cause
+#### 🛠️ Evidence
 - **File**: `path/to/file.cc`
 - **Code**: `Specific line or snippet`
-- **Reasoning**: Why this specific change is responsible.
+- **Reasoning**: Explain why this line is (or is not) related to the regression.
 
 #### 💡 Fix Suggestion
-(Provide a specific optimization or a different architectural approach to resolve the regression.)
+(If a link is found, suggest an optimization. If no link is found, suggest what other system areas might be responsible.)
 
 #### ⚖️ Verdict
-**Final Decision**: [CULPRIT / NOT CULPRIT / INCONCLUSIVE]
-**Confidence Score**: [1-10]/10
+**Final Decision**: [CULPRIT / NOT CULPRIT / STATISTICAL NOISE / INCONCLUSIVE]
+**Justification**: A brief summary of your reasoning for this verdict.
 
 **Important Constraints**:
+- Be skeptical and objective. Do not force a correlation if the code change is unrelated to the metrics.
 - Ensure the Regression Summary table is the very first section of your response.
 - Do not use conversational filler ("I have analyzed...", "Based on the diff...").
 - Be technical and precise (e.g., use terms like "main thread jank", "binary size bloat", "cache miss").
-- If the diff is irrelevant to the metrics (e.g., a documentation change for a CPU regression), boldly state **NOT CULPRIT**.
 - State which Gemini model version you are at the end of the analysis.
 """
     file_list_str = "\n".join(["- " + f for f in file_info_map.keys()])
