@@ -543,7 +543,8 @@ found in the LICENSE file.
       },
 
       isCrossbenchBenchmark: function(benchmark) {
-        return _CROSSBENCH_LIST.includes(benchmark);
+        if (!benchmark) return false;
+        return benchmark.endsWith('.crossbench') || _CROSSBENCH_LIST.includes(benchmark);
       },
 
       _isStoryRequired: function(story, storyTags, benchmark) {
