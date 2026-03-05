@@ -17,7 +17,6 @@ from devil import base_error
 from devil.android.ndk import abis
 from devil.android.sdk import aapt
 from devil.android.sdk import bundletool
-from devil.android.sdk import split_select
 from devil.utils import cmd_helper
 
 _logger = logging.getLogger(__name__)
@@ -109,8 +108,14 @@ def ToSplitHelper(path_or_helper, split_apks):
     if sorted(path_or_helper.split_apk_paths) != sorted(split_apks):
       raise ApkHelperError('Helper has different split APKs')
     return path_or_helper
-  if (isinstance(path_or_helper, six.string_types)
-      and path_or_helper.endswith('.apk')):
+  if isinstance(path_or_helper, ApkHelper):
+    # We've been given the base split.
+    ret = SplitApkHelper(path_or_helper.path, split_apks)
+    # pylint: disable=protected-access
+    ret._manifest = path_or_helper._manifest
+    # pylint: enable=protected-access
+    return ret
+  if isinstance(path_or_helper, str) and path_or_helper.endswith('.apk'):
     return SplitApkHelper(path_or_helper, split_apks)
 
   raise ApkHelperError(
@@ -585,14 +590,7 @@ class SplitApkHelper(BaseApkHelper):
                   additional_locales=None):
     if modules:
       raise ApkHelperError('Cannot install modules when installing single APK')
-    splits = split_select.SelectSplits(
-        device,
-        self.path,
-        self.split_apk_paths,
-        allow_cached_props=allow_cached_props)
-    if len(splits) == 1:
-      _logger.warning('split-select did not select any from %s', splits)
-    return _NoopFileHelper([self._base_apk_path] + splits)
+    return _NoopFileHelper([self._base_apk_path] + self.split_apk_paths)
 
   #override
   @staticmethod
