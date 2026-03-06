@@ -79,7 +79,7 @@ wheel: <
 
 wheel: <
   name: "infra/python/wheels/pyasn1_modules-py2_py3"
-  version: "version:0.2.8"
+  version: "version:0.4.2"
 >
 
 wheel: <
@@ -93,8 +93,8 @@ wheel: <
 >
 
 wheel: <
-  name: "infra/python/wheels/pyasn1-py2_py3"
-  version: "version:0.4.8"
+  name: "infra/python/wheels/pyasn1-py3"
+  version: "version:0.6.2"
 >
 
 wheel: <
