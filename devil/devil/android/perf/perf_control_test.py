@@ -30,6 +30,8 @@ def _ShellCommandHandler(  # pylint: disable=unused-argument
       return [contents + '\n%~%0%~%'] * 4
     if 'cat "$CPU/online"' in cmd:
       return ['1\n%~%0%~%'] * 4
+    if 'cat "$CPU/cpufreq/scaling_governor"' in cmd:
+      return ['ondemand\n%~%0%~%'] * 4
   assert False, 'Should not be called with cmd: {}'.format(cmd)
   # This is unreachable
   # we are just adding this return to quiet pylint
@@ -40,6 +42,7 @@ class PerfControlTest(unittest.TestCase):
   @staticmethod
   def _MockOutLowLevelPerfControlMethods(perf_control_object):
     # pylint: disable=protected-access
+    perf_control_object._SetScalingGovernor = mock.Mock()
     perf_control_object.SetScalingGovernor = mock.Mock()
     perf_control_object._ForceAllCpusOnline = mock.Mock()
     perf_control_object._SetScalingMaxFreqForCpus = mock.Mock()
@@ -57,6 +60,11 @@ class PerfControlTest(unittest.TestCase):
     mock_device.RunShellCommand = mock.Mock(side_effect=_ShellCommandHandler)
     pc = perf_control.PerfControl(mock_device)
     self._MockOutLowLevelPerfControlMethods(pc)
+    pc.GetScalingGovernor = mock.Mock(return_value=[
+        ('cpu0', 'ondemand'),
+        ('cpu1', 'ondemand'),
+        ('cpu2', 'ondemand'),
+        ('cpu3', 'ondemand')])
 
     # Verify.
     # pylint: disable=protected-access
@@ -80,6 +88,13 @@ class PerfControlTest(unittest.TestCase):
     mock_device.RunShellCommand = mock.Mock(side_effect=_ShellCommandHandler)
     pc = perf_control.PerfControl(mock_device)
     self._MockOutLowLevelPerfControlMethods(pc)
+    pc.GetScalingGovernor = mock.Mock(return_value=[
+        ('cpu0', 'ondemand'),
+        ('cpu1', 'ondemand'),
+        ('cpu2', 'ondemand'),
+        ('cpu3', 'ondemand'),
+        ('cpu4', 'ondemand'),
+        ('cpu5', 'ondemand')])
 
     # Verify.
     # pylint: disable=protected-access
@@ -113,3 +128,34 @@ class PerfControlTest(unittest.TestCase):
     pc._SetScalingMaxFreqForCpus.assert_any_call(1824000, 'cpu4 cpu5')
     pc._SetMaxGpuClock.assert_called_once_with(600000000)
     pc._ForceAllCpusOnline.assert_called_once_with(False)
+
+  def testRestoresGovernors(self):
+    # Mock out the device state for PerfControl.
+    cpu_list = ['cpu%d' % cpu for cpu in range(4)]
+    mock_device = mock.Mock(spec=device_utils.DeviceUtils)
+    mock_device.product_model = 'Nexus 5'
+    mock_device.adb = mock.Mock(spec=adb_wrapper.AdbWrapper)
+    mock_device.ListDirectory.return_value = cpu_list + ['cpufreq']
+    mock_device.FileExists.return_value = True
+    mock_device.RunShellCommand = mock.Mock(side_effect=_ShellCommandHandler)
+    pc = perf_control.PerfControl(mock_device)
+    self._MockOutLowLevelPerfControlMethods(pc)
+    pc.GetScalingGovernor = mock.Mock(return_value=[
+        ('cpu0', 'ondemand'),
+        ('cpu1', 'ondemand'),
+        ('cpu2', 'interactive'),
+        ('cpu3', 'interactive')])
+    # Verify.
+    # pylint: disable=protected-access
+    # pylint: disable=no-member
+    pc.SetHighPerfMode()
+    pc.GetScalingGovernor.assert_called_once_with()
+
+    pc.RestorePerfMode()
+    pc.SetScalingGovernor.assert_called_with('performance')
+    pc._SetScalingGovernor.assert_has_calls([
+        mock.call('ondemand', 'cpu0'),
+        mock.call('ondemand', 'cpu1'),
+        mock.call('interactive', 'cpu2'),
+        mock.call('interactive', 'cpu3')], any_order=True)
+    pc._ForceAllCpusOnline.assert_has_calls([mock.call(True), mock.call(False)])

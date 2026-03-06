@@ -120,6 +120,9 @@ class PlatformBackend():
   def SetPerformanceMode(self, performance_mode):
     pass
 
+  def RestorePerformanceMode(self):
+    pass
+
   def CanMonitorThermalThrottling(self):
     return False
 

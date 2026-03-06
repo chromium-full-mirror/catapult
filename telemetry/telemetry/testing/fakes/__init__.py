@@ -75,6 +75,9 @@ class FakePlatform():
   def SetPerformanceMode(self, mode):
     pass
 
+  def RestorePerformanceMode(self):
+    pass
+
   def CanMonitorThermalThrottling(self):
     return False
 

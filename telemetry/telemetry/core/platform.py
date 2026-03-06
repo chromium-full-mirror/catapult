@@ -323,6 +323,13 @@ class Platform():
     """
     return self._platform_backend.SetPerformanceMode(performance_mode)
 
+  def RestorePerformanceMode(self):
+    """ Restore the performance mode on the platform.
+
+    Note: this can be no-op on certain platforms.
+    """
+    return self._platform_backend.RestorePerformanceMode()
+
   def StartLocalServer(self, server):
     """Starts a LocalServer and associates it with this platform.
     |server.Close()| should be called manually to close the started server.

@@ -339,7 +339,7 @@ class SharedPageState(story_module.SharedState):
     self.platform.StopAllLocalServers()
     self.platform.network_controller.Close()
     if self._perf_mode_set:
-      self.platform.SetPerformanceMode(android_device.NORMAL_PERFORMANCE_MODE)
+      self.platform.RestorePerformanceMode()
 
   def _StopBrowser(self):
     if self._browser:

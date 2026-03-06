@@ -203,6 +203,7 @@ class PerfControl(object):
         (cpu, raw_governors.strip().split() if not exit_code else None)
         for cpu, raw_governors, exit_code in raw
     ]
+    self._original_governors = None
 
   def _SetMaxFrequenciesFromMode(self, mode):
     """Set maximum frequencies for GPU and CPU cores.
@@ -239,6 +240,10 @@ class PerfControl(object):
     except device_errors.CommandFailedError:
       _NoisyWarning('Need root for performance mode.')
       return
+
+    if self._original_governors is None:
+      self._original_governors = self.GetScalingGovernor()
+
     mode_definitions = _GetPerfModeDefinitions(self._device.product_model)
     if not mode_definitions:
       self.SetScalingGovernor('performance')
@@ -275,10 +280,24 @@ class PerfControl(object):
       return
     self._ForceCpusOffline(cpu_list=' '.join(big_cores))
 
+  def RestorePerfMode(self):
+    """Restores the performance mode to its original value."""
+    if not self._device.HasRoot():
+      return
+
+    if not self._original_governors:
+      self.SetDefaultPerfMode()
+
+    for cpu, governor in self._original_governors:
+      self._SetScalingGovernor(governor, cpu)
+    self._original_governors = None
+    self._ForceAllCpusOnline(False)
+
   def SetDefaultPerfMode(self):
     """Sets the performance mode for the device to its default mode."""
     if not self._device.HasRoot():
       return
+
     mode_definitions = _GetPerfModeDefinitions(self._device.product_model)
     if not mode_definitions:
       self.SetScalingGovernor('ondemand')

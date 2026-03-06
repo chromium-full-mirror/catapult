@@ -327,6 +327,8 @@ class AndroidPlatformBackend(
     else:
       raise ValueError('Unknown performance mode: %s' % performance_mode)
 
+  def RestorePerformanceMode(self):
+    self._perf_tests_setup.RestorePerfMode()
 
   def CanMonitorThermalThrottling(self):
     return True
