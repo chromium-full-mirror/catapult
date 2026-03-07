@@ -568,6 +568,50 @@ class DeviceUtilsIsApplicationInstalledTest(DeviceUtilsTest):
           self.device.IsApplicationInstalled('some.installed.app', 1234))
 
 
+class DeviceUtilsSetAppEnabledTest(DeviceUtilsTest):
+
+  def testSetAppEnabled_enable(self):
+    with self.assertCalls((self.call.device.GetCurrentUser(), 0),
+                          (self.call.device.RunShellCommand(
+                              ['pm', 'enable', '--user', '0', 'some.package'],
+                              check_return=True,
+                              as_root=False,
+                              timeout=10,
+                              retries=0), '')):
+      self.device.SetAppEnabled('some.package', True)
+
+  def testSetAppEnabled_disable(self):
+    with self.assertCalls(
+        (self.call.device.GetCurrentUser(), 0),
+        (self.call.device.RunShellCommand(
+            ['pm', 'disable-user', '--user', '0', 'some.package'],
+            check_return=True,
+            as_root=False,
+            timeout=10,
+            retries=0), '')):
+      self.device.SetAppEnabled('some.package', False)
+
+  def testSetAppEnabled_specificUser(self):
+    with self.assertCall(
+        self.call.device.RunShellCommand(
+            ['pm', 'enable', '--user', '10', 'some.package'],
+            check_return=True,
+            as_root=False,
+            timeout=10,
+            retries=0)):
+      self.device.SetAppEnabled('some.package', True, user_id=10)
+
+  def testSetAppEnabled_asRoot(self):
+    with self.assertCalls((self.call.device.GetCurrentUser(), 0),
+                          (self.call.device.RunShellCommand(
+                              ['pm', 'enable', '--user', '0', 'some.package'],
+                              check_return=True,
+                              as_root=True,
+                              timeout=10,
+                              retries=0), '')):
+      self.device.SetAppEnabled('some.package', True, as_root=True)
+
+
 class DeviceUtilsIsSystemModuleInstalledTest(DeviceUtilsTest):
   def testIsSystemModuleInstalled_installed(self):
     with self.assertCalls((self.call.device.RunShellCommand(

@@ -342,8 +342,8 @@ _USER_FLAG_MAIN = 0x00004000
 
 # A string template pointing to file that stores the gboard preference
 # for a given user.
-_GBOARD_PKG = 'com.google.android.inputmethod.latin'
-_GBOARD_PREF_FILENAME = f'{_GBOARD_PKG}_preferences.xml'
+GBOARD_PKG = 'com.google.android.inputmethod.latin'
+GBOARD_PREF_FILENAME = f'{GBOARD_PKG}_preferences.xml'
 
 
 # Namespaces for settings
@@ -904,6 +904,34 @@ class DeviceUtils(object):
     # to checking via `dumpsys package`.
     return self._IsApplicationInstalledDumpsys(package,
                                                library_version=library_version)
+
+  @decorators.WithTimeoutAndRetriesFromInstance()
+  def SetAppEnabled(self,
+                    package,
+                    enabled,
+                    user_id=None,
+                    as_root=False,
+                    timeout=None,
+                    retries=None):
+    """Enable or disable an application.
+
+    Args:
+      package: Package name of the application (e.g. 'com.google.android.inputmethod.latin').
+      enabled: True to enable, False to disable.
+      user_id: The user for whom to enable or disable the app.
+          If None, the current user is used.
+      as_root: Whether to run the command as root.
+    """
+    if user_id is None:
+      user_id = self.GetCurrentUser()
+    enable_command = 'enable' if enabled else 'disable-user'
+    self.RunShellCommand(
+        ['pm', enable_command, '--user',
+         str(user_id), package],
+        check_return=True,
+        as_root=as_root,
+        timeout=timeout,
+        retries=retries)
 
   @decorators.WithTimeoutAndRetriesFromInstance()
   def _IsApplicationInstalledDumpsys(self,
@@ -3864,8 +3892,8 @@ class DeviceUtils(object):
       A shared_prefs.SharedPrefs object
     """
     with shared_prefs.SharedPrefs(self,
-                                  _GBOARD_PKG,
-                                  _GBOARD_PREF_FILENAME,
+                                  GBOARD_PKG,
+                                  GBOARD_PREF_FILENAME,
                                   user_id=self.GetCurrentUser(),
                                   use_encrypted_path=True) as prefs:
       yield prefs
