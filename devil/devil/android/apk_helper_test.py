@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2017 The Chromium Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -6,10 +6,16 @@
 import collections
 import os
 import unittest
+import sys
 
 from unittest import mock
 
-from devil.android import apk_helper
+try:
+  from devil.android import apk_helper
+except ModuleNotFoundError:
+  sys.path.insert(1, os.path.join(os.path.dirname(__file__), '..', '..'))
+  from devil.android import apk_helper
+
 from devil.android.ndk import abis
 from devil.utils import mock_calls
 
@@ -216,10 +222,10 @@ class ApkHelperTest(mock_calls.TestCase):
     apk = apk_helper.ToSplitHelper('abc.apk', ['a.apk', 'b.apk'])
     self.assertTrue(isinstance(apk, apk_helper.SplitApkHelper))
 
-  def testToHelperSplitException(self):
-    with self.assertRaises(apk_helper.ApkHelperError):
-      apk_helper.ToSplitHelper(
-          apk_helper.ToHelper('abc.apk'), ['a.apk', 'b.apk'])
+  def testToHelperSplitApkFromHelper(self):
+    apk = apk_helper.ToSplitHelper(apk_helper.ToHelper('abc.apk'),
+                                   ['a.apk', 'b.apk'])
+    self.assertTrue(isinstance(apk, apk_helper.SplitApkHelper))
 
   def testGetInstrumentationName(self):
     with _MockAaptDump(_MANIFEST_DUMP):
@@ -458,13 +464,9 @@ class ApkHelperTest(mock_calls.TestCase):
     apk = apk_helper.ToSplitHelper('base.apk',
                                    ['split1.apk', 'split2.apk', 'split3.apk'])
     device = _MockDeviceUtils()
-    with self.assertCalls(
-        (mock.call.devil.android.sdk.split_select.SelectSplits(
-            device,
-            'base.apk', ['split1.apk', 'split2.apk', 'split3.apk'],
-            allow_cached_props=False), ['split2.apk'])),\
-      apk.GetApkPaths(device) as apk_paths:
-      self.assertEqual(apk_paths, ['base.apk', 'split2.apk'])
+    with apk.GetApkPaths(device) as apk_paths:
+      self.assertEqual(apk_paths,
+                       ['base.apk', 'split1.apk', 'split2.apk', 'split3.apk'])
 
   def testGetSplitsBundleScript(self):
     apk = apk_helper.ToHelper('abc_bundle')

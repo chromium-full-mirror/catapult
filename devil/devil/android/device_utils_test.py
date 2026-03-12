@@ -642,11 +642,16 @@ class DeviceUtilsGetApplicationPathsInternalTest(DeviceUtilsTest):
   def testGetApplicationPathsInternal_exists(self):
     with self.assertCalls(
         (self.call.device.GetProp('ro.build.version.sdk', cache=True), '19'),
-        (self.call.device.RunShellCommand(['pm', 'path', 'android'],
-                                          check_return=True),
-         ['package:/path/to/android.apk'])):
-      self.assertEqual(['/path/to/android.apk'],
-                       self.device._GetApplicationPathsInternal('android'))
+        (self.call.device.RunShellCommand(
+            ['pm', 'path', 'android'], check_return=True), [
+                'package:/data/app/foo/base.apk',
+                'package:/data/app/foo/split_bar.apk',
+                'package:/data/app/foo/split_config.fr.apk'
+            ])):
+      self.assertEqual([
+          '/data/app/foo/base.apk', '/data/app/foo/split_bar.apk',
+          '/data/app/foo/split_config.fr.apk'
+      ], self.device._GetApplicationPathsInternal('android'))
 
   def testGetApplicationPathsInternal_notExists(self):
     with self.assertCalls(
@@ -846,7 +851,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path'])):
+            'android', skip_cache=True), ['/data/app/foo/base.apk'])):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=False)
 
   @mock.patch('devil.android.sdk.adb_wrapper.RestartServer', return_value=None)
@@ -876,7 +881,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path'])):
+            'android', skip_cache=True), ['/data/app/foo/base.apk'])):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=False)
       self.assertEqual(restart_server_mock.call_count, 1)
 
@@ -925,7 +930,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path']),
+            'android', skip_cache=True), ['/data/app/foo/base.apk']),
         # wifi_enabled
         (self.call.adb.Shell('dumpsys wifi', timeout=mock.ANY),
          'stuff\nWi-Fi is enabled\nmore stuff\n')):
@@ -944,7 +949,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path']),
+            'android', skip_cache=True), ['/data/app/foo/base.apk']),
         # decryption_completed
         (self.call.device.GetProp('vold.decrypt',
                                   cache=False), 'trigger_restart_framework')):
@@ -963,7 +968,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path']),
+            'android', skip_cache=True), ['/data/app/foo/base.apk']),
         # decryption_completed
         (self.call.device.GetProp('vold.decrypt', cache=False), '')):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=True)
@@ -984,7 +989,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path'])):
+            'android', skip_cache=True), ['/data/app/foo/base.apk'])):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=False)
 
   def testWaitUntilFullyBooted_deviceNotInitiallyAvailable(self):
@@ -1008,7 +1013,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path'])):
+            'android', skip_cache=True), ['/data/app/foo/base.apk'])):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=False)
 
   def testWaitUntilFullyBooted_deviceBrieflyOffline(self):
@@ -1026,7 +1031,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path'])):
+            'android', skip_cache=True), ['/data/app/foo/base.apk'])):
       self.device.WaitUntilFullyBooted(wifi=False, decrypt=False)
 
   def testWaitUntilFullyBooted_sdCardReadyFails_noPath(self):
@@ -1121,7 +1126,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path']),
+            'android', skip_cache=True), ['/data/app/foo/base.apk']),
         # wifi_enabled
         (self.call.adb.Shell('dumpsys wifi',
                              timeout=mock.ANY), 'stuff\nmore stuff\n'),
@@ -1147,7 +1152,7 @@ class DeviceUtilsWaitUntilFullyBootedTest(DeviceUtilsTest):
                              timeout=mock.ANY), ''),
         # pm_ready
         (self.call.device._GetApplicationPathsInternal(
-            'android', skip_cache=True), ['package:/some/fake/path']),
+            'android', skip_cache=True), ['/data/app/foo/base.apk']),
         # decryption_completed
         (self.call.device.GetProp(
             'vold.decrypt', cache=False), 'trigger_restart_min_framework'),
@@ -1217,6 +1222,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1237,6 +1244,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=False,
@@ -1257,6 +1266,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=False,
@@ -1277,6 +1288,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           (self.call.adb.Install(TEST_APK_PATH,
                                  reinstall=False,
                                  streaming=None,
@@ -1296,6 +1309,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           (self.call.adb.Install(TEST_APK_PATH,
                                  reinstall=False,
                                  streaming=None,
@@ -1314,6 +1329,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           (self.call.adb.Install(TEST_APK_PATH,
                                  reinstall=False,
                                  streaming=None,
@@ -1332,9 +1349,10 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
         (self.call.device._FakeInstall(set(), None, 'test.package')),
         (mock.call.os.path.exists(TEST_APK_PATH), True),
         (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-         ['/fake/data/app/test.package.apk']),
+         ['/data/app/foo/base.apk']),
         (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
-         ([], None)), (self.call.device.ClearApplicationState(TEST_PACKAGE)),
+         ([], [], None)),
+        (self.call.device.ClearApplicationState(TEST_PACKAGE)),
         (self.call.device.ForceStop(TEST_PACKAGE)),
         (self.call.device.IsApplicationInstalled(TEST_PACKAGE, None), True)):
       self.device.Install(
@@ -1348,9 +1366,10 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['/fake/data/app/test.package.apk']),
+           ['/data/app/foo/base.apk']),
           (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
-           ([TEST_APK_PATH], None)), self.call.device.Uninstall(TEST_PACKAGE),
+           ([TEST_APK_PATH], [], None)),
+          self.call.device.Uninstall(TEST_PACKAGE),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1369,9 +1388,12 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), [
-              '/fake/data/app/test.package.apk',
-              '/fake/data/app/test.package2.apk'
-          ]), self.call.device.Uninstall(TEST_PACKAGE),
+              "/data/app/foo/base.apk", "/data/app/foo/split_bar.apk",
+              "/data/app/foo/split_config.fr.apk"
+          ]),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
+          self.call.device.Uninstall(TEST_PACKAGE),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1390,9 +1412,9 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['/fake/data/app/test.package.apk']),
+           ['/data/app/foo/base.apk']),
           (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
-           ([TEST_APK_PATH], None)),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=True,
                                 streaming=None,
@@ -1411,15 +1433,13 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
         (self.call.device._FakeInstall(set(), None, 'test.package')),
         (mock.call.os.path.exists(TEST_APK_PATH), True),
         (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-         ['/fake/data/app/test.package.apk']),
+         ['/data/app/foo/base.apk']),
         (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
-         ([], None)), (self.call.device.ForceStop(TEST_PACKAGE)),
-          (self.call.device.IsApplicationInstalled(TEST_PACKAGE, None), True)):
-      self.device.Install(
-          DeviceUtilsInstallTest.mock_apk,
-          reinstall=True,
-          retries=0,
-          permissions=[])
+         ([], [], None)), (self.call.device.ForceStop(TEST_PACKAGE))):
+      self.device.Install(DeviceUtilsInstallTest.mock_apk,
+                          reinstall=True,
+                          retries=0,
+                          permissions=[])
 
   def testInstall_missingApk(self):
     with self.assertCalls(
@@ -1436,13 +1456,14 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
-          (self.call.adb.Install(
-              TEST_APK_PATH,
-              reinstall=False,
-              streaming=None,
-              allow_downgrade=False,
-              instant_app=False,
-              force_queryable=False), self.CommandError('Failure\r\n'))):
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)), (self.call.adb.Install(
+               TEST_APK_PATH,
+               reinstall=False,
+               streaming=None,
+               allow_downgrade=False,
+               instant_app=False,
+               force_queryable=False), self.CommandError('Failure\r\n'))):
         with self.assertRaises(device_errors.CommandFailedError):
           self.device.Install(DeviceUtilsInstallTest.mock_apk, retries=0)
 
@@ -1454,9 +1475,9 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['/fake/data/app/test.package.apk']),
+           ['/data/app/foo/base.apk']),
           (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
-           ([TEST_APK_PATH], None)),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=True,
                                 streaming=None,
@@ -1507,6 +1528,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
               as_root=True,
               shell=True), (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1530,6 +1553,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1552,6 +1577,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1572,6 +1599,8 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device._FakeInstall(set(), None, 'test.package')),
           (mock.call.os.path.exists(TEST_APK_PATH), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
           self.call.adb.Install(TEST_APK_PATH,
                                 reinstall=False,
                                 streaming=None,
@@ -1664,11 +1693,18 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
           (mock.call.devil.android.apk_helper.ToSplitHelper(
               'base.apk', ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
+           (['base.apk', 'split1.apk', 'split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(
               ['base.apk', 'split1.apk', 'split2.apk'],
               partial=None,
@@ -1689,11 +1725,18 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
           (mock.call.devil.android.apk_helper.ToSplitHelper(
               'base.apk', ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
+           (['base.apk', 'split1.apk', 'split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(
               ['base.apk', 'split1.apk', 'split2.apk'],
               partial=None,
@@ -1715,23 +1758,27 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
               DeviceUtilsInstallSplitApkTest.mock_apk,
               ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
-          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['base-on-device.apk', 'split2-on-device.apk']),
-          (self.call.device._ComputeStaleApks(
+          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), [
+              "/data/app/foo/base.apk", "/data/app/foo/split_bar.apk",
+              "/data/app/foo/split_config.fr.apk"
+          ]), (self.call.device._ComputeStaleApks(
               TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
-           (['split2.apk'], None)),
+               (['split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(['split2.apk'],
                                          partial=TEST_PACKAGE,
                                          reinstall=True,
                                          streaming=None,
                                          allow_downgrade=False,
                                          instant_app=False,
-                                         force_queryable=False)),
-          (self.call.device.IsApplicationInstalled(TEST_PACKAGE, None), True)):
+                                         force_queryable=False))):
         self.device.InstallSplitApk(
             DeviceUtilsInstallSplitApkTest.mock_apk,
             ['split1.apk', 'split2.apk'],
@@ -1748,23 +1795,27 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
               DeviceUtilsInstallSplitApkTest.mock_apk,
               ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
-          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['base-on-device.apk', 'split2-on-device.apk']),
-          (self.call.device._ComputeStaleApks(
+          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), [
+              "/data/app/foo/base.apk", "/data/app/foo/split_bar.apk",
+              "/data/app/foo/split_config.fr.apk"
+          ]), (self.call.device._ComputeStaleApks(
               TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
-           (['split2.apk'], None)),
+               (['split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(['split2.apk'],
                                          partial=TEST_PACKAGE,
                                          reinstall=True,
                                          streaming=None,
                                          allow_downgrade=True,
                                          instant_app=False,
-                                         force_queryable=False)),
-          (self.call.device.IsApplicationInstalled(TEST_PACKAGE, None), True)):
+                                         force_queryable=False))):
         self.device.InstallSplitApk(
             DeviceUtilsInstallSplitApkTest.mock_apk,
             ['split1.apk', 'split2.apk'],
@@ -1774,20 +1825,23 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
             allow_downgrade=True)
 
   def testInstallSplitApk_missingSplit(self):
-    with self.assertCalls(
-        (mock.call.devil.android.apk_helper.ToSplitHelper(
-            DeviceUtilsInstallSplitApkTest.mock_apk,
-            ['split1.apk', 'split2.apk']),
-          DeviceUtilsInstallSplitApkTest.mock_apk),
-        (self.call.device._CheckSdkLevel(21)),
-        (mock.call.os.path.exists('base.apk'), True),
-        (mock.call.os.path.exists('split1.apk'), True),
-        (mock.call.os.path.exists('split2.apk'), False)),\
-        self.assertRaises(device_errors.CommandFailedError):
-      self.device.InstallSplitApk(
-          DeviceUtilsInstallSplitApkTest.mock_apk, ['split1.apk', 'split2.apk'],
-          permissions=[],
-          retries=0)
+    with mock.patch('devil.android.sdk.split_select.SelectSplits',
+                    return_value=['split1.apk', 'split2.apk']):
+      with self.patch_call(self.call.device.build_version_sdk,
+                           return_value=version_codes.LOLLIPOP):
+        with self.assertCalls(
+            (mock.call.devil.android.apk_helper.ToSplitHelper(
+                DeviceUtilsInstallSplitApkTest.mock_apk,
+                ['split1.apk', 'split2.apk']),
+              DeviceUtilsInstallSplitApkTest.mock_apk),
+            (mock.call.os.path.exists('base.apk'), True),
+            (mock.call.os.path.exists('split1.apk'), True),
+            (mock.call.os.path.exists('split2.apk'), False)),\
+            self.assertRaises(device_errors.CommandFailedError):
+          self.device.InstallSplitApk(DeviceUtilsInstallSplitApkTest.mock_apk,
+                                      ['split1.apk', 'split2.apk'],
+                                      permissions=[],
+                                      retries=0)
 
   def testInstallSplitApk_previouslyNonSplit(self):
     with self.patch_call(self.call.device.product_name,
@@ -1798,12 +1852,19 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
               DeviceUtilsInstallSplitApkTest.mock_apk,
               ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-           ['/fake/data/app/test.package.apk']),
+           ['/data/app/foo/base.apk']),
+          (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
+           (['base.apk', 'split1.apk', 'split2.apk'], [], None)),
           self.call.device.Uninstall(TEST_PACKAGE),
           (self.call.adb.InstallMultiple(
               ['base.apk', 'split1.apk', 'split2.apk'],
@@ -1828,11 +1889,18 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
           (mock.call.devil.android.apk_helper.ToSplitHelper(
               'base.apk', ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
+           (['base.apk', 'split1.apk', 'split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(
               ['base.apk', 'split1.apk', 'split2.apk'],
               partial=None,
@@ -1855,11 +1923,18 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
           (mock.call.devil.android.apk_helper.ToSplitHelper(
               'base.apk', ['split1.apk', 'split2.apk']),
            DeviceUtilsInstallSplitApkTest.mock_apk),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device,
+              'base.apk', ['split1.apk', 'split2.apk'],
+              allow_cached_props=False), ['split1.apk', 'split2.apk']),
           (self.call.device._CheckSdkLevel(21)),
           (mock.call.os.path.exists('base.apk'), True),
           (mock.call.os.path.exists('split1.apk'), True),
           (mock.call.os.path.exists('split2.apk'), True),
           (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk', 'split2.apk']),
+           (['base.apk', 'split1.apk', 'split2.apk'], [], None)),
           (self.call.adb.InstallMultiple(
               ['base.apk', 'split1.apk', 'split2.apk'],
               partial=None,
@@ -1874,12 +1949,42 @@ class DeviceUtilsInstallSplitApkTest(DeviceUtilsTest):
                                     retries=0,
                                     force_queryable=True)
 
+  def testInstallSplitApk_removeExcessSplits(self):
+    with self.patch_call(self.call.device.product_name,
+                         return_value='notflounder'), \
+         self.patch_call(self.call.device.is_emulator, return_value=False):
+      with self.assertCalls(
+          (mock.call.devil.android.apk_helper.ToSplitHelper(
+              DeviceUtilsInstallSplitApkTest.mock_apk, ['split1.apk']),
+           _MockApkHelper('base.apk', TEST_PACKAGE, ['p1'], ['split1.apk'])),
+          (mock.call.devil.android.sdk.split_select.SelectSplits(
+              self.device, 'base.apk', ['split1.apk'],
+              allow_cached_props=False), ['split1.apk']),
+          (self.call.device._CheckSdkLevel(21)),
+          (mock.call.os.path.exists('base.apk'), True),
+          (mock.call.os.path.exists('split1.apk'), True),
+          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), [
+              "/data/app/foo/base.apk", "/data/app/foo/split_bar.apk",
+              "/data/app/foo/split_config.fr.apk"
+          ]), (self.call.device._ComputeStaleApks(
+              TEST_PACKAGE, ['base.apk', 'split1.apk']), ([], ['split2'], {
+                  'base': 'h0',
+                  'split1': 'h1'
+              })), (self.call.device.RunShellCommand(
+                  ['pm', 'uninstall', '-k', TEST_PACKAGE, 'split2']))):
+        self.device.InstallSplitApk(DeviceUtilsInstallSplitApkTest.mock_apk,
+                                    ['split1.apk'],
+                                    reinstall=True,
+                                    permissions=[],
+                                    retries=0)
+
 
 class DeviceUtilsUninstallTest(DeviceUtilsTest):
   def testUninstall_callsThrough(self):
     with self.assertCalls(
         (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE),
-         ['/path.apk']), self.call.adb.Uninstall(TEST_PACKAGE, True)):
+         ['/data/app/foo/base.apk']),
+        self.call.adb.Uninstall(TEST_PACKAGE, True)):
       self.device.Uninstall(TEST_PACKAGE, True)
 
   def testUninstall_noop(self):
@@ -2924,10 +3029,9 @@ class DeviceUtilsClearApplicationStateTest(DeviceUtilsTest):
     with self.assertCalls(
         (self.call.device.GetProp('ro.build.version.sdk', cache=True), '17'),
         (self.call.device._GetApplicationPathsInternal('this.package.exists'),
-         ['/data/app/this.package.exists.apk']),
-        (self.call.device.RunShellCommand(
-            ['pm', 'clear', 'this.package.exists'], check_return=True),
-         ['Success']),
+         ['/data/app/foo/base.apk']), (self.call.device.RunShellCommand(
+             ['pm', 'clear', 'this.package.exists'],
+             check_return=True), ['Success']),
         (self.call.device.GrantPermissions('this.package.exists', ['p1']), [])):
       self.device.ClearApplicationState(
           'this.package.exists', permissions=['p1'])
@@ -2937,10 +3041,9 @@ class DeviceUtilsClearApplicationStateTest(DeviceUtilsTest):
       with self.assertCalls(
           (self.call.device.GetProp('ro.build.version.sdk', cache=True), '17'),
           (self.call.device._GetApplicationPathsInternal('this.package.exists'),
-           ['/data/app/this.package.exists.apk']),
-          (self.call.device.RunShellCommand(
-              ['pm', 'clear', '--user', '11', 'this.package.exists'],
-              check_return=True), ['Success']),
+           ['/data/app/foo/base.apk']), (self.call.device.RunShellCommand(
+               ['pm', 'clear', '--user', '11', 'this.package.exists'],
+               check_return=True), ['Success']),
           (self.call.device.GrantPermissions('this.package.exists',
                                              ['p1']), [])):
         self.device.ClearApplicationState('this.package.exists',
@@ -2964,10 +3067,9 @@ class DeviceUtilsClearApplicationStateTest(DeviceUtilsTest):
     with self.assertCalls(
         (self.call.device.GetProp('ro.build.version.sdk', cache=True), '17'),
         (self.call.device._GetApplicationPathsInternal('this.package.exists'),
-         ['/data/app/this.package.exists.apk']),
-        (self.call.device.RunShellCommand(
-            ['pm', 'clear', 'this.package.exists'], check_return=True),
-         ['Success'])):
+         ['/data/app/foo/base.apk']), (self.call.device.RunShellCommand(
+             ['pm', 'clear', 'this.package.exists'],
+             check_return=True), ['Success'])):
       self.device.ClearApplicationState('this.package.exists')
 
   def testClearApplicationState_packageExistsOnAndroidJBMR2OrAbove(self):

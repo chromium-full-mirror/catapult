@@ -40,6 +40,7 @@ from devil.android.sdk import adb_wrapper
 from devil.android.sdk import intent
 from devil.android.sdk import keyevent
 from devil.android.sdk import shared_prefs
+from devil.android.sdk import split_select
 from devil.android.sdk import version_codes
 from devil.utils import parallelizer
 from devil.utils import reraiser_thread
@@ -403,6 +404,28 @@ def _JoinLines(lines):
   # efficient than first appending an end-line to each line and then joining
   # all of them together.
   return ''.join(s for line in lines for s in (line, '\n'))
+
+
+def _SplitNameFromHostFilename(filename):
+  # E.g.: dir/base-master_2.apk
+  # E.g.: dir/base_fr-master_2.apk
+  # E.g.: dir/SomeName.apk
+  base = os.path.basename(filename)[:-4]
+  # Assume any name that doesn't follow the scheme is the base module.
+  if '-' not in base:
+    return 'base'
+  return base.split('-')[0]
+
+
+def _SplitNameFromDeviceFilename(filename):
+  # E.g.: dir/base.apk
+  # E.g.: dir/split_chrome.apk
+  # E.g.: dir/split_config.fr.apk
+  ret = posixpath.basename(filename.replace('\\', '/'))[:-4]
+  if ret != 'base':
+    assert ret.startswith('split_'), filename
+    ret = ret[6:]
+  return ret
 
 
 def _CreateAdbWrapper(device, **kwargs):
@@ -1001,6 +1024,7 @@ class DeviceUtils(object):
 
     Returns:
       List of paths to the apks on the device for the given package.
+      Returns [] if the package is not installed.
     """
     return self._GetApplicationPathsInternal(package)
 
@@ -1018,7 +1042,7 @@ class DeviceUtils(object):
         # uninstalled manually.
         if cached_result and not self.PathExists(cached_result):
           cached_result = None
-          self._cache['package_apk_checksums'].pop(package, 0)
+          self._cache['package_apk_hashes'].pop(package, 0)
       if cached_result is not None:
         return list(cached_result)
     # 'pm path' is liable to incorrectly exit with a nonzero number starting
@@ -1371,7 +1395,7 @@ class DeviceUtils(object):
               additional_locales=None,
               instant_app=False,
               force_queryable=False):
-    """Install an APK or app bundle.
+    """Install an .apk, .apks, or .aab.
 
     Noop if an identical APK is already installed. If installing a bundle, the
     bundletools helper script (bin/*_bundle) should be used rather than the .aab
@@ -1575,8 +1599,9 @@ class DeviceUtils(object):
                       timeout=None,
                       retries=None,
                       instant_app=False,
-                      force_queryable=False):
-    """Install a split APK.
+                      force_queryable=False,
+                      install_all_splits=False):
+    """Install an apk and .apk splits.
 
     Noop if all of the APK splits are already installed.
 
@@ -1597,6 +1622,7 @@ class DeviceUtils(object):
       force_queryable: A boolean that allows the installed application to be
         queryable by all other applications regardless of if they have declared
         the package as queryable in their manifests - Supported from SDK 30
+      install_all_splits: If False, filter the list of splits using split-select.
 
     Raises:
       CommandFailedError if the installation fails.
@@ -1609,6 +1635,15 @@ class DeviceUtils(object):
     apk = apk_helper.ToSplitHelper(base_apk, split_apks)
     with apk.GetApkPaths(
         self, allow_cached_props=allow_cached_props) as apk_paths:
+      if not install_all_splits:
+        apk_paths = [apk_paths[0]] + split_select.SelectSplits(
+            self,
+            apk_paths[0],
+            apk_paths[1:],
+            allow_cached_props=allow_cached_props)
+        if len(apk_paths) == 1:
+          logging.warning('split-select did not select any from %s',
+                          apk_paths[1:])
       self._InstallInternal(apk,
                             apk_paths,
                             reinstall=reinstall,
@@ -1640,26 +1675,20 @@ class DeviceUtils(object):
     package_name = apk.GetPackageName()
     device_apk_paths = self._GetApplicationPathsInternal(package_name)
 
-    host_checksums = None
-    if not device_apk_paths:
-      apks_to_install = apk_paths
-    elif len(device_apk_paths) > 1 and len(apk_paths) == 1:
+    if len(device_apk_paths) > 1 and len(apk_paths) == 1:
       logger.warning(
           'Installing non-split APK when split APK was previously installed')
-      apks_to_install = apk_paths
     elif len(device_apk_paths) == 1 and len(apk_paths) > 1:
       logger.warning(
           'Installing split APK when non-split APK was previously installed')
-      apks_to_install = apk_paths
-    else:
-      try:
-        apks_to_install, host_checksums = (self._ComputeStaleApks(
-            package_name, apk_paths))
-      except device_errors.CommandFailedError as e:
-        logger.warning('Error calculating md5: %s', e)
-        apks_to_install, host_checksums = apk_paths, None
-      if apks_to_install and not reinstall:
-        apks_to_install = apk_paths
+
+    # Even when we know there is no device_apk_paths, force host_checksums to
+    # be computed so that hashes can be cached without having to compute them
+    # on device in subsequent calls.
+    apks_to_install, excess_split_names, host_checksums = self._ComputeStaleApks(
+        package_name, apk_paths)
+    logging.debug('apks_to_install: %s', ', '.join(apks_to_install))
+    logging.debug('excess_split_names: %s', ', '.join(excess_split_names))
 
     if device_apk_paths and not reinstall:
       if apks_to_install:
@@ -1670,56 +1699,71 @@ class DeviceUtils(object):
         # explicitly clear it when skipping the uninstall.
         self.ClearApplicationState(package_name)
 
-    if apks_to_install:
-      # Assume that we won't know the resulting device state.
-      self._cache['package_apk_paths'].pop(package_name, 0)
-      self._cache['package_apk_checksums'].pop(package_name, 0)
-      partial = package_name if len(apks_to_install) < len(apk_paths) else None
-      streaming = None
-      if self.product_name in _NO_STREAMING_DEVICE_LIST:
-        streaming = False
-      if (self.is_emulator
-          and self.build_version_sdk in _NO_STREAMING_EMULATOR_API_LEVELS):
-        streaming = False
-      logger.info('Installing package %s using APKs %s',
-                  package_name, apks_to_install)
-      if len(apks_to_install) > 1 or partial:
-        self.adb.InstallMultiple(apks_to_install,
-                                 partial=partial,
-                                 reinstall=reinstall,
-                                 streaming=streaming,
-                                 allow_downgrade=allow_downgrade,
-                                 instant_app=instant_app,
-                                 force_queryable=force_queryable)
-      else:
-        self.adb.Install(apks_to_install[0],
-                         reinstall=reinstall,
-                         streaming=streaming,
-                         allow_downgrade=allow_downgrade,
-                         instant_app=instant_app,
-                         force_queryable=force_queryable)
+    if apks_to_install or excess_split_names:
+      # Assume that we won't know the resulting device state if something
+      # goes wrong.
+      self._cache['package_apk_hashes'].pop(package_name, None)
+      self._cache['package_apk_paths'].pop(package_name, None)
+
+      if excess_split_names:
+        logger.info('Removing splits: %s', excess_split_names)
+        self.RunShellCommand(['pm', 'uninstall', '-k', package_name] +
+                             excess_split_names)
+
+      if apks_to_install:
+        partial = package_name if len(apks_to_install) < len(
+            apk_paths) else None
+        streaming = None
+        if self.product_name in _NO_STREAMING_DEVICE_LIST:
+          streaming = False
+        if (self.is_emulator
+            and self.build_version_sdk in _NO_STREAMING_EMULATOR_API_LEVELS):
+          streaming = False
+        logger.info('Installing package %s using APKs %s', package_name,
+                    apks_to_install)
+        if len(apks_to_install) > 1 or partial:
+          self.adb.InstallMultiple(apks_to_install,
+                                   partial=partial,
+                                   reinstall=reinstall,
+                                   streaming=streaming,
+                                   allow_downgrade=allow_downgrade,
+                                   instant_app=instant_app,
+                                   force_queryable=force_queryable)
+        else:
+          self.adb.Install(apks_to_install[0],
+                           reinstall=reinstall,
+                           streaming=streaming,
+                           allow_downgrade=allow_downgrade,
+                           instant_app=instant_app,
+                           force_queryable=force_queryable)
+
+      # Upon success, we know the device checksums.
+      # We do not know the path, as the /data/app/ directory might change.
+      self._cache['package_apk_hashes'][package_name] = host_checksums
+      logging.debug('set package_apk_hashes=%s', repr(host_checksums))
     else:
-      logger.info('Skipping installation of package %s', package_name)
+      logger.info('Skipping installation of package %s (already up-to-date)',
+                  package_name)
       # Running adb install terminates running instances of the app, so to be
       # consistent, we explicitly terminate it when skipping the install.
       self.ForceStop(package_name)
 
-    # There have been cases of APKs not being detected after being explicitly
-    # installed, so perform a sanity check now and fail early if the
-    # installation somehow failed.
-    library_version = apk.GetLibraryVersion()
-    if not self.IsApplicationInstalled(package_name, library_version):
-      raise device_errors.CommandFailedError(
-          'Package %s with version %s not installed on device after explicit '
-          'install attempt.' % (package_name, library_version))
+    # Do not need these steps if the base APK has not changed.
+    if not reinstall or apk_paths[0] in apks_to_install:
+      # There have been cases of APKs not being detected after being explicitly
+      # installed, so perform a sanity check now and fail early if the
+      # installation somehow failed.
+      library_version = apk.GetLibraryVersion()
+      if not self.IsApplicationInstalled(package_name, library_version):
+        raise device_errors.CommandFailedError(
+            'Package %s with version %s not installed on device after explicit '
+            'install attempt.' % (package_name, library_version))
 
-    if (permissions is None
-        and self.build_version_sdk >= version_codes.MARSHMALLOW):
-      permissions = apk.GetPermissions()
-    self.GrantPermissions(package_name, permissions)
-    # Upon success, we know the device checksums, but not their paths.
-    if host_checksums is not None:
-      self._cache['package_apk_checksums'][package_name] = host_checksums
+      if (permissions is None
+          and self.build_version_sdk >= version_codes.MARSHMALLOW):
+        permissions = apk.GetPermissions()
+      self.GrantPermissions(package_name, permissions)
+
 
   @decorators.WithTimeoutAndRetriesFromInstance()
   def Uninstall(self, package_name, keep_data=False, timeout=None,
@@ -1745,7 +1789,7 @@ class DeviceUtils(object):
     # cached package paths are indeterminate due to system apps taking over
     # user apps after uninstall, so clear it
     self._cache['package_apk_paths'].pop(package_name, 0)
-    self._cache['package_apk_checksums'].pop(package_name, 0)
+    self._cache['package_apk_hashes'].pop(package_name, 0)
     self.adb.Uninstall(package_name, keep_data)
 
   def _CheckSdkLevel(self, required_sdk_level):
@@ -2655,19 +2699,26 @@ class DeviceUtils(object):
 
     return (to_push, cache_commit_func)
 
-  def _ComputeDeviceChecksumsForApks(self, package_name):
-    ret = self._cache['package_apk_checksums'].get(package_name)
+  def _ComputeDeviceHashBySplitName(self, package_name):
+    ret = self._cache['package_apk_hashes'].get(package_name)
     if ret is None:
-      # TODO(hypan): Double check for multi-user
-      if self.PathExists('/data/data/' + package_name, as_root=True):
-        device_paths = self._GetApplicationPathsInternal(package_name)
-        file_to_checksums = devil_util.CalculateDeviceHashes(device_paths, self)
-        ret = set(file_to_checksums.values())
+      device_paths = self._GetApplicationPathsInternal(package_name)
+      if not device_paths:
+        ret = {}
+      elif any(p.endswith('/base.apk') for p in device_paths):
+        # System image .apks, including .apk.gz ones that are decompressed to
+        # /data, do not follow the naming scheme.
+        ret = devil_util.CalculateDeviceHashes(device_paths, self)
+        logging.debug('Device APKs: %s', ret)
+        # Convert paths to split names (assuming they are named as such).
+        ret = {_SplitNameFromDeviceFilename(k): v for k, v in ret.items()}
       else:
-        logger.info('Cannot reuse package %s (data directory missing)',
-                    package_name)
-        ret = set()
-      self._cache['package_apk_checksums'][package_name] = ret
+        # TODO(hypan): Double check for multi-user
+        # Do not compute hashes for system apks.
+        logger.info('Cannot reuse package %s with paths: %s',
+                    package_name, device_paths)
+        ret = {}
+      self._cache['package_apk_hashes'][package_name] = ret
     return ret
 
   def _ComputeStaleApks(self, package_name, host_apk_paths):
@@ -2675,15 +2726,33 @@ class DeviceUtils(object):
       return devil_util.CalculateHostHashes(host_apk_paths)
 
     def calculate_device_checksums():
-      return self._ComputeDeviceChecksumsForApks(package_name)
+      return self._ComputeDeviceHashBySplitName(package_name)
 
-    host_checksums, device_checksums = reraiser_thread.RunAsync(
+    host_checksums, device_hash_by_split_name = reraiser_thread.RunAsync(
         (calculate_host_checksums, calculate_device_checksums))
+    logging.warning('HOST: %s', repr(host_checksums))
+    logging.warning('DEVICE: %s', repr(device_hash_by_split_name))
+    device_checksums_set = set(device_hash_by_split_name.values())
     stale_apks = [
         k for (k, v) in host_checksums.items()
-        if v and v not in device_checksums
+        if v and v not in device_checksums_set
     ]
-    return stale_apks, set(host_checksums.values())
+
+    host_checksums = {
+        _SplitNameFromHostFilename(k): v
+        for k, v in host_checksums.items()
+    }
+    if len(host_apk_paths) == 1 or len(device_hash_by_split_name) == 1:
+      excess_split_names = []
+    else:
+      device_split_names = set(device_hash_by_split_name)
+      host_split_names = set(host_checksums)
+      if device_split_names:
+        assert 'base' in device_split_names, repr(device_split_names)
+      assert 'base' in host_split_names, repr(host_split_names)
+      excess_split_names = sorted(device_split_names - host_split_names)
+
+    return stale_apks, excess_split_names, host_checksums
 
   def _PushFilesImpl(self, host_device_tuples, files):
     if not files:
@@ -4209,8 +4278,8 @@ class DeviceUtils(object):
         # Set of packageId that were loaded from LoadCacheData and not yet
         # verified.
         'package_apk_paths_to_verify': set(),
-        # Map of packageId -> set of on-device .apk checksums
-        'package_apk_checksums': {},
+        # Map of packageId -> split_name_by_hash
+        'package_apk_hashes': {},
         # Map of property_name -> value
         'getprop': {},
         # Map of device path -> checksum]
@@ -4254,15 +4323,12 @@ class DeviceUtils(object):
       return False
 
     self._cache['package_apk_paths'] = obj.get('package_apk_paths', {})
+    self._cache['package_apk_hashes'] = obj.get('package_apk_hashes', {})
     # When using a cache across script invokations, verify that apps have
     # not been uninstalled.
     self._cache['package_apk_paths_to_verify'] = set(
         self._cache['package_apk_paths'])
 
-    package_apk_checksums = obj.get('package_apk_checksums', {})
-    for k, v in package_apk_checksums.items():
-      package_apk_checksums[k] = set(v)
-    self._cache['package_apk_checksums'] = package_apk_checksums
     device_path_checksums = obj.get('device_path_checksums', {})
     self._cache['device_path_checksums'] = device_path_checksums
     return True
@@ -4279,13 +4345,11 @@ class DeviceUtils(object):
       A serialized cache as a string.
     """
     self._EnsureCacheInitialized()
+    # Persist only a few things that make a big perf difference.
     obj = {}
     obj['token'] = self._cache['token']
     obj['package_apk_paths'] = self._cache['package_apk_paths']
-    obj['package_apk_checksums'] = self._cache['package_apk_checksums']
-    # JSON can't handle sets.
-    for k, v in obj['package_apk_checksums'].items():
-      obj['package_apk_checksums'][k] = list(v)
+    obj['package_apk_hashes'] = self._cache['package_apk_hashes']
     obj['device_path_checksums'] = self._cache['device_path_checksums']
     return json.dumps(obj, separators=(',', ':'))
 
