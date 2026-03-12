@@ -1,3 +1,164 @@
+v6.2.1 (2025-10-12)
+===================
+
+- Add support for Python 3.14.
+
+- Improve documentation.
+
+- Update CI environment.
+
+
+v6.2.0 (2025-08-25)
+===================
+
+- Improve general ``RRCache`` performance by storing cache keys in an
+  additional sequence container.  Note that this will increase memory
+  consumption.
+
+- Add more unit tests.
+
+
+v6.1.0 (2025-06-16)
+===================
+
+- Improve ``LFUCache`` insertion performance by switching to an
+  implementation based on the `cacheing
+  <https://pypi.org/project/cacheing/>`_ library.
+
+- Update CI environment.
+
+
+v6.0.0 (2025-05-23)
+===================
+
+- Require Python 3.9 or later (breaking change).
+
+- Remove ``MRUCache`` and the ``@func.mru_cache`` decorator (breaking
+  change).
+
+- Add an optional ``condition`` parameter to the ``@cached`` and
+  ``@cachedmethod`` decorators, which, when used with a
+  ``threading.Condition`` instance, should improve `cache stampede
+  <https://en.wikipedia.org/wiki/Cache_stampede>`_ issues in massively
+  parallel environments.  Note that this will inflict some performance
+  penalty, and therefore has to be enabled explicitly.
+
+- Convert the ``cachetools.func`` decorators to use a
+  ``threading.Condition`` instance to deal with `cache stampede
+  <https://en.wikipedia.org/wiki/Cache_stampede>`_ issues.  Note that
+  this *may* result in a noticable performance degradation, depending
+  on your actual use case.
+
+- Deprecate support for ``cache(self)`` returning ``None`` to suppress
+  caching with the ``@cachedmethod`` decorator.
+
+- Improve documentation.
+
+- Update CI environment.
+
+
+v5.5.2 (2025-02-20)
+===================
+
+- Reduce number of ``@cached`` lock/unlock operations.
+
+- Improve documentation.
+
+- Update CI environment.
+
+
+v5.5.1 (2025-01-21)
+===================
+
+- Add documentation regarding caching of exceptions.
+
+- Officially support Python 3.13.
+
+- Update CI environment.
+
+
+v5.5.0 (2024-08-18)
+===================
+
+- ``TTLCache.expire()`` returns iterable of expired ``(key, value)``
+  pairs.
+
+- ``TLRUCache.expire()`` returns iterable of expired ``(key, value)``
+  pairs.
+
+- Documentation improvements.
+
+- Update CI environment.
+
+
+v5.4.0 (2024-07-15)
+===================
+
+- Add the ``keys.typedmethodkey`` decorator.
+
+- Deprecate ``MRUCache`` class.
+
+- Deprecate ``@func.mru_cache`` decorator.
+
+- Update CI environment.
+
+
+v5.3.3 (2024-02-26)
+===================
+
+- Documentation improvements.
+
+- Update CI environment.
+
+
+v5.3.2 (2023-10-24)
+===================
+
+- Add support for Python 3.12.
+
+- Various documentation improvements.
+
+
+v5.3.1 (2023-05-27)
+===================
+
+- Depend on Python >= 3.7.
+
+
+v5.3.0 (2023-01-22)
+===================
+
+- Add ``cache_info()`` function to ``@cached`` decorator.
+
+
+v5.2.1 (2023-01-08)
+===================
+
+- Add support for Python 3.11.
+
+- Correct version information in RTD documentation.
+
+- ``badges/shields``: Change to GitHub workflow badge routes.
+
+
+v5.2.0 (2022-05-29)
+===================
+
+- Add ``cachetools.keys.methodkey()``.
+
+- Add ``cache_clear()`` function to decorators.
+
+- Add ``src`` directory to ``sys.path`` for Sphinx autodoc.
+
+- Modernize ``func`` wrappers.
+
+
+v5.1.0 (2022-05-15)
+===================
+
+- Add cache decorator parameters as wrapper function attributes.
+
+
 v5.0.0 (2021-12-21)
 ===================
 
@@ -29,7 +190,7 @@ v5.0.0 (2021-12-21)
 
   ``TTLCache`` items now get expired if their expiration time is less
   than *or equal to* ``timer()``.  For applications using the default
-  ``timer()``, this should be barely noticable, but it may affect the
+  ``timer()``, this should be barely noticeable, but it may affect the
   use of custom timers with larger tick intervals.  Note that this
   also implies that a ``TTLCache`` with ``ttl=0`` can no longer hold
   any items, since they will expire immediately.
@@ -254,7 +415,7 @@ v1.1.0 (2015-08-28)
 
 - Add ``@cached`` function decorator.
 
-- Add ``hashkey`` and ``typedkey`` fuctions.
+- Add ``hashkey`` and ``typedkey`` functions.
 
 - Add `key` and `lock` arguments to ``@cachedmethod``.
 

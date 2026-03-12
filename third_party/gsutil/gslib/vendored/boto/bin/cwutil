@@ -7,7 +7,7 @@
 import boto
 cw = boto.connect_cloudwatch()
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 def _parse_time(time_string):
     """Internal function to parse a time string"""
@@ -52,11 +52,11 @@ def stats(namespace, metric_name, dimensions=None, statistics="Average", start_t
     if end_time:
         end_time = _parse_time(end_time)
     else:
-        end_time = datetime.utcnow()
+        end_time = datetime.now(tz=timezone.utc).replace(tzinfo=None)
     if start_time:
         start_time = _parse_time(start_time)
     else:
-        start_time = datetime.utcnow() - timedelta(days=1)
+        start_time = datetime.now(tz=timezone.utc).replace(tzinfo=None) - timedelta(days=1)
             
     print "%-30s %s" % ('Timestamp', statistics)
     print "-"*50

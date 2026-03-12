@@ -637,6 +637,7 @@ CP_AND_MV_SHIM_FLAG_MAP = {
     '-v': GcloudStorageFlag('--print-created-message'),
     '-Z': GcloudStorageFlag('--gzip-local-all'),
     '-z': GcloudStorageFlag('--gzip-local'),
+    '-U': GcloudStorageFlag('--skip-unsupported'),
 }
 # Adds recursion flags.
 CP_SHIM_FLAG_MAP = {
@@ -1042,8 +1043,8 @@ class CpCommand(Command):
       self.has_file_dst = self.has_file_dst or exp_dst_url.IsFileUrl()
       self.has_cloud_dst = self.has_cloud_dst or exp_dst_url.IsCloudUrl()
       self.provider_types.add(exp_dst_url.scheme)
-      self.combined_src_urls = itertools.chain(self.combined_src_urls,
-                                               src_url_str)
+      self.combined_src_urls = list(itertools.chain(self.combined_src_urls,
+                                               src_url_str))
 
       yield name_expansion_iterator_dst_tuple
 

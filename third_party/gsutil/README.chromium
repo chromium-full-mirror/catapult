@@ -1,14 +1,12 @@
 Name: gsutil
-Short Name: gsutil
 URL: https://github.com/GoogleCloudPlatform/gsutil
-Version: 5.29
-Revision: 63ae7eeb2cac04cfc5f989b1a6f86172e561c2c7
+Version: 5.36
+Revision: c1e99521cebd61bab214b67a00372051cb01fb7b
 Update Mechanism: Manual
-Date: 2024-05-08
 License: Apache-2.0
 License File: LICENSE
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 gsutil is a Python application that allow access Google Cloud Storage from
@@ -21,10 +19,25 @@ management tasks, including:
 * Editing object and bucket ACLs.
 
 Local Modifications:
-_ Added this file.
-_ Added BUILD.gn
-_ Removed requirements.txt from google-auth-library-python and
-  google-auth-library-python-httlib2's .kokoro dependency. The
-  requirements listed there are not used by Catapult and were causing false
-  positives when checking Python dependency versions.
-- Added gsutil.bat for invoking gsutil on Windows.
+* Added README.chromium, BUILD.gn, gsutil.bat
+* Added third_party/google-auth-library-python/google/__init__.py
+* Removed docs, test, and samples (see update steps)
+
+Steps to update:
+git clone https://github.com/GoogleCloudPlatform/gsutil foo
+cd foo
+git checkout TAG
+git submodules init
+git submodules update
+cd ..
+cp foo/* .
+rm -rf third_party gslib/vendored
+cp -r foo/third_party .
+cp -r foo/gslib/vendored gslib
+rm -rf foo
+rm -rf **/docs **/samples
+rm -rf **/tests **/test **/tests_async **/system_tests **/*_test.py
+rm -rf **/.* gslib/commands/test.py third_party/mock third_party/funcsigs
+Remove "mock" and "funcsigs" from gsutil.py
+touch third_party/google-auth-library-python/google/__init__.py
+git add .

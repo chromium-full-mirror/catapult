@@ -1,3 +1,85 @@
+Release 5.36 (release date: 2026-03-03)
+======================================
+New Features
+------------------
+- Added explicit support for Python 3.14
+
+Other Changes
+------------------
+- Added migration guide for gsutil to gcloud storage (#1881)
+- Added banner suggesting migration to gcloud storage (#1899)
+- Updated README.md recommending gcloud storage CLI for GCS (#1903)
+
+Release 5.35 (release date: 2025-06-25)
+======================================
+New Features
+------------------
+- Added explicit support for Python 3.13
+
+Other Changes
+------------------
+- Dropped Support for Python 3.8.
+
+Release 5.34 (release date: 2025-04-16)
+======================================
+New Features
+------------------
+
+Shim Changes
+------------------
+- Added shim translations for (--autoclass and -s) options in gsutil mb command (#1835 and #1845).
+- Added shim translations for (-U and -r/-R) options in gsutil mv command (#1852 and #1853).
+- Added shim translation for -U option in gsutil cp command (#1852).
+
+Other Changes
+------------------
+- Added invocation id to Gsutil user agent (#1856).
+- Ignored Syntax warnings in pyparsing module (#1841).
+- Increased timeout for gsutil tests from 180s to 360s (#1855).
+
+Bug Fixes
+------------------
+- Fixed parity issues and updated tests in gstil hmac and gsutil ls commands (#1847, #1848 and #1860).
+
+Release 5.33 (release date: 2024-12-10)
+======================================
+Bug Fixes
+------------------
+- Corrected python-requires as <3.13 (#1827)
+
+Other Changes
+------------------
+
+Release 5.32 (release date: 2024-12-04)
+======================================
+New Features
+------------------
+- Added explicit support for Python 3.12
+
+Other Changes
+------------------
+- Dropped Support for Python 3.5, 3.6 and 3.7.
+- Pinned pyOpenSSL to a maximum version of 24.2.1 (#1822).
+
+Release 5.31 (release date: 2024-10-10)
+======================================
+Bug Fixes
+------------------
+- Fixed some vulnerabilities in dependencies by addressing CVE-2023-38325.
+
+Other Changes
+------------------
+- Skipped incompatible tests for python 3.11.9 and above
+
+Release 5.30 (release date: 2024-06-12)
+======================================
+New Features
+------------------
+
+Other Changes
+------------------
+- Fixed the bug in `gsutil signurl` command.
+
 Release 5.29 (release date: 2024-05-07)
 ======================================
 New Features

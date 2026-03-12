@@ -6,6 +6,7 @@
 Unit tests for some APIs with conditional logic in adb_wrapper.py
 """
 
+import sys
 import unittest
 
 from unittest import mock
@@ -108,3 +109,6 @@ class AdbWrapperTest(unittest.TestCase):
           env=mock.ANY)
       self.assertIn('adb connect to testhost:5555 may have failed',
                     log_results.output[0])
+
+if __name__ == '__main__':
+  sys.exit(unittest.main())
