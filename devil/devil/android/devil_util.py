@@ -55,7 +55,6 @@ def CalculateHostHashes(paths):
     paths: A list of host paths to pass to devil_util.
   Returns:
     A dict mapping file paths to their respective devil_util checksums.
-    Missing files exist in the dict, but have '' as values.
   """
   assert isinstance(paths, (list, tuple)), 'Got a ' + type(paths).__name__
   if not paths:
@@ -73,9 +72,8 @@ def CalculateHostHashes(paths):
           [devil_util_bin_host_path, 'hash',
            '@%s' % compressed_arg_file.name])
   else:
-    combined_paths_escaped = cmd_helper.SingleQuote(combined_paths)
     exit_code, stdout, stderr = cmd_helper.GetCmdStatusOutputAndError(
-        [devil_util_bin_host_path, 'hash', combined_paths_escaped])
+        [devil_util_bin_host_path, 'hash', combined_paths])
 
   if exit_code != 0:
     exc_msg = ['Failed to hash files']
@@ -83,7 +81,21 @@ def CalculateHostHashes(paths):
     exc_msg.extend('stderr: %s' % l for l in stderr.splitlines())
     raise device_errors.CommandFailedError(os.linesep.join(exc_msg))
 
-  return dict(zip(paths, stdout.splitlines()))
+  hashes = stdout.splitlines()
+  if len(hashes) != len(paths):
+    raise device_errors.CommandFailedError(
+        'Calculated %d hashes for %d paths. stdout: %s' %
+        (len(hashes), len(paths), stdout))
+
+  results = dict(zip(paths, hashes))
+  # devil_util_bin outputs an empty line for missing files. Check that this
+  # doesn't happen for host files.
+  failed_paths = [p for p, h in results.items() if not h]
+  if failed_paths:
+    raise device_errors.CommandFailedError(
+        'Failed to calculate hashes for: %s' % failed_paths)
+
+  return results
 
 
 def CompressViaZst(compressed_path, uncompressed_content):
