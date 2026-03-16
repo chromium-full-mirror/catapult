@@ -246,6 +246,34 @@ class AddHistogramsBaseTest(testing_common.TestCase):
             mock.MagicMock())
 class AddHistogramsEndToEndTest(AddHistogramsBaseTest):
 
+  def testPost_DeleteFileNotFound_Succeeds(self):
+    # Setup mock to raise NotFoundError on delete
+    class MockNotFoundError(Exception):
+      pass
+
+    self.mock_cloudstorage.NotFoundError = MockNotFoundError
+    self.mock_cloudstorage.delete.side_effect = MockNotFoundError(
+        'File not found')
+
+    hs = _CreateHistogram(
+        master='master',
+        bot='bot',
+        benchmark='benchmark',
+        commit_position=123,
+        benchmark_description='Benchmark description.',
+        samples=[1, 2, 3])
+    data = json.dumps(hs.AsDicts())
+
+    # This should succeed because delete safe wrapper catches the exception
+    response = self.PostAddHistogram({'data': data})
+    self.assertEqual(200, response.status_code)
+
+    # Verify that the task was executed and histograms added
+    self.ExecuteTaskQueueTasks('/add_histograms_queue',
+                               add_histograms.TASK_QUEUE_NAME)
+    histograms = histogram.Histogram.query().fetch()
+    self.assertEqual(1, len(histograms))
+
   @mock.patch.object(add_histograms_queue.graph_revisions,
                      'AddRowsToCacheAsync')
   @mock.patch.object(add_histograms_queue.find_anomalies, 'ProcessTestsAsync')

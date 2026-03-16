@@ -54,6 +54,13 @@ def _CheckUser():
     raise api_request_handler.ForbiddenError()
 
 
+def _DeleteGcsFileSafe(gcs_file_path):
+  try:
+    cloudstorage.delete(gcs_file_path, retry_params=_RETRY_PARAMS)
+  except cloudstorage.NotFoundError:
+    pass
+
+
 def AddHistogramsProcessPost():
   datastore_hooks.SetPrivilegedRequest()
   token = None
@@ -79,7 +86,7 @@ def AddHistogramsProcessPost():
 
       ProcessHistogramSet(histogram_dicts, token)
     finally:
-      cloudstorage.delete(gcs_file_path, retry_params=_RETRY_PARAMS)
+      _DeleteGcsFileSafe(gcs_file_path)
 
     upload_completion_token.Token.UpdateObjectState(
         token, upload_completion_token.State.COMPLETED)
