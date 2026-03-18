@@ -30,7 +30,7 @@ set_user_email() {
   # gcloud account configured. Because in other cases we don't neet to deploy
   # the service (gcloud not authed or without code)
   email=$(gcloud config get-value account 2>/dev/null)
-  if [[ -e /workspace ]] && ! [[ -z "${email}" ]]; then
+  if [[ -e /workspace ]] && ! [[ -z "${email}" ]] && git -C /workspace rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     pushd /workspace
     git config --add user.email "${email}"
     popd
