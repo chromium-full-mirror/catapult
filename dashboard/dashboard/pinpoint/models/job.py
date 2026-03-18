@@ -1307,7 +1307,14 @@ Analyze these results. Look for metrics with significant regressions (low p-valu
 Provide an objective analysis in the following Markdown format:
 
 #### 📊 Regression Summary
-(A Markdown table listing the affected metrics, their % change, and p-value).
+Create a Markdown table listing the affected metrics.
+
+**STRICT CALCULATION RULES:**
+1. **% Change**: You MUST calculate this exactly as `((treatment_median - control_median) / control_median) * 100`. Round to two decimal places. Do not use the `lower` or `upper` values for this column.
+2. **95% CI**: Format this column strictly as `[lower, upper]` using the exact values from the JSON.
+
+| Metric | % Change | 95% CI | p-value | Interpretation |
+|---|---|---|---|---|
 
 #### 🔍 Root Cause Analysis
 (Provide a technical investigation. Does the code change logically explain the metric changes? E.g., does it add computational complexity, increase memory usage, or affect a critical path? If the code change appears irrelevant to the metrics, explicitly state why.)

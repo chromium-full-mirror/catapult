@@ -295,7 +295,7 @@ class JobTest(test.TestCase):
     # Set limit to fit static prompt + 1 file, but not 2.
     # We'll calculate a safe limit by first getting the static prompt size or just
     # using a value that we know is slightly above the threshold.
-    analysis = j.GetGeminiAnalysis(prompt_size_limit=2700)
+    analysis = j.GetGeminiAnalysis(prompt_size_limit=3000)
 
     self.assertEqual(analysis, 'Summary')
     # Second call contains the analysis prompt
