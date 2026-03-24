@@ -9,77 +9,86 @@ found in the LICENSE file.
   <template>
     <style>
       .announcement-bar {
-        position: inherit;
         width: 100%;
-        background-color: #fde073;
-        padding: 10px;
-        font-size: 14px;
-        table-layout: fixed;
+        background-color: #ffcdd2;
+        color: #b71c1c;
+        padding: 12px 10px;
+        font-size: 15px;
         text-align: center;
+        border-bottom: 3px solid #b71c1c;
+      }
+
+      .announcement-bar p {
+        margin: 5px 0;
+      }
+
+      .announcement-bar a {
+        color: #b71c1c;
+        font-weight: bold;
+        text-decoration: underline;
       }
 
       #links {
         margin-left: auto;
         margin-right: auto;
+        margin-top: 10px;
       }
       #links tbody td {
-        padding: 3px 5px 3px 5px;
-        position: relative;
-        word-wrap: break-word;
+        padding: 3px 8px;
         text-align: left;
       }
-      #links thead th, #alerts tbody td {
+      #links thead th {
         text-align: left;
         font-weight: bold;
         text-decoration: underline;
       }
     </style>
+
     <div class="announcement-bar">
-      <p><b>This dashboard will be deprecated mid-August 2025.</b></p>
-      <p>This dashboard and page are no longer supported.</p>
-      <p>Please raise your questions and concerns no later than Aug 1, 2025 through <a href="https://issues.chromium.org/issues/new?noWizard=true&component=1547614&template=1970127">this bug.</a></p>
-      <p>Please use the links below to use the new UI for your benchmarks.</p>
-      <p>If you have any questions, please <a href="http://go/berf-skia-chat"> reach out to us here.</a></p>
-        <table id="links">
-          <thead>
+      <p><b>🚨 THIS DASHBOARD IS DEPRECATED AND SHUTTING DOWN.</b></p>
+      <p>If you are not in the <b>v8</b> or <b>Fuchsia</b> teams, you may lose access at any moment. <a href="http://go/berf-skia-chat">Reach out to us ASAP.</a></p>
+      <p>Use the links below for the new UI:</p>
+
+      <table id="links">
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>URL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="https://chromium.googlesource.com/chromium/src">chromium/src</a></td>
+            <td><a href="{{chromium_url}}">{{chromium_url}}</a></td>
+          </tr>
+          <tr>
+            <td><a href="https://webrtc.googlesource.com/src">webrtc</a></td>
+            <td><a href="{{webrtc_url}}">{{webrtc_url}}</a></td>
+          </tr>
+          <template is="dom-if" if="{{isInternal}}">
             <tr>
-              <th>Repository</th>
-              <th>URL</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><a href="https://chromium.googlesource.com/chromium/src">chromium/src</a></td>
-              <td><a href="{{chromium_url}}">{{chromium_url}}</a></td>
+              <td><a href="https://chromium.googlesource.com/v8/v8">v8/v8</a></td>
+              <td><a href="{{v8_url}}">{{v8_url}}</a></td>
             </tr>
             <tr>
-              <td><a href="https://webrtc.googlesource.com/src">webrtc</a></td>
-              <td><a href="{{webrtc_url}}">{{webrtc_url}}</a></td>
+              <td><a href="https://chrome-internal.googlesource.com/cdm/src/">cdm/src</a></td>
+              <td><a href="{{cdm_url}}">{{cdm_url}}</a></td>
             </tr>
-            <template is="dom-if" if="{{isInternal}}">
-              <tr>
-                <td><a href="https://chromium.googlesource.com/v8/v8">v8/v8</a></td>
-                <td><a href="{{v8_url}}">{{v8_url}}</a></td>
-              </tr>
-              <tr>
-                <td><a href="https://chrome-internal.googlesource.com/cdm/src/">cdm/src</a></td>
-                <td><a href="{{cdm_url}}">{{cdm_url}}</a></td>
-              </tr>
-              <tr>
-                <td><a href="https://widevine-internal.googlesource.com/security/whitebox-api-intertrust-prod">security/whitebox-api-intertrust-prod</a></td>
-                <td><a href="{{whitebox_url}}">{{whitebox_url}}</a></td>
-              </tr>
-              <tr>
-                <td><a href="https://chromium.googlesource.com/devtools/devtools-frontend">devtools-frontend</a></td>
-                <td><a href="{{devtoolsfe_url}}">{{devtoolsfe_url}}</a></td>
-              </tr>
-              <tr>
-                <td><a href="https://turquoise-internal.googlesource.com/integration">fuchsia/integration</a></td>
-                <td><a href="{{fuchsia_url}}">{{fuchsia_url}}</a></td>
-              </tr>
-            </template>
-          </tbody>
-        </table>
+            <tr>
+              <td><a href="https://widevine-internal.googlesource.com/security/whitebox-api-intertrust-prod">security/whitebox-api-intertrust-prod</a></td>
+              <td><a href="{{whitebox_url}}">{{whitebox_url}}</a></td>
+            </tr>
+            <tr>
+              <td><a href="https://chromium.googlesource.com/devtools/devtools-frontend">devtools-frontend</a></td>
+              <td><a href="{{devtoolsfe_url}}">{{devtoolsfe_url}}</a></td>
+            </tr>
+            <tr>
+              <td><a href="https://turquoise-internal.googlesource.com/integration">fuchsia/integration</a></td>
+              <td><a href="{{fuchsia_url}}">{{fuchsia_url}}</a></td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
     </div>
   </template>
   <script>
