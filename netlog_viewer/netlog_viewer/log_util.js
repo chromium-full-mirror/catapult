@@ -197,9 +197,11 @@ const LogUtil = (function() {
     // --log-net-log.
     let parsedDump = null;
     let errorString = '';
+    let parseError;
     try {
       parsedDump = JSON.parse(logFileContents);
     } catch (error) {
+      parseError = error;
       try {
         // We may have a --log-net-log=blah log dump.  If so, remove the comma
         // after the final good entry, and add the necessary close brackets.
@@ -215,7 +217,7 @@ const LogUtil = (function() {
     }
 
     if (!parsedDump) {
-      return 'Unable to parse log dump as JSON file.';
+      return 'Unable to parse log dump as JSON file: ' + parseError;
     }
     return errorString + loadLogDump(parsedDump, fileName);
   }
