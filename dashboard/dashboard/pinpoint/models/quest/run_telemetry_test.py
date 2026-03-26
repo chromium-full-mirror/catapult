@@ -70,6 +70,8 @@ _CROSSBENCH_NAME = {
     'jetstream2.0.crossbench': 'jetstream_2.0',
     'jetstream2.1.crossbench': 'jetstream_2.1',
     'jetstream2.2.crossbench': 'jetstream_2.2',
+    'jetstream3.crossbench': 'jetstream_3',
+    'jetstream3.0.crossbench': 'jetstream_3.0',
     'jetstream-main.crossbench': 'jetstream_main',
     # Motionmark
     'motionmark1.0.crossbench': 'motionmark_1.0',
@@ -94,6 +96,10 @@ _CROSSBENCH_NAME = {
     'embedder.crossbench': 'embedder',
     # Loading
     'loading.crossbench': 'loading',
+    # webai.crossbench
+    'webai.crossbench': 'webai',
+    # devtools_frontend.crossbench
+    'devtools_frontend.crossbench': 'devtools_frontend',
 }
 
 _CROSSBENCH_EXTRA_ARGS = {
