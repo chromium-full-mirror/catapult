@@ -354,6 +354,7 @@ class ActualPageRunEndToEndTests(unittest.TestCase):
 
   @decorators.Disabled('chromeos')  # crbug.com/1031074
   @decorators.Disabled('win7')  # crbug.com/1260124
+  @decorators.Disabled('macos26')  # crbug.com/482087754
   def testScreenShotTakenForFailedPage(self):
     class FailingTestPage(page_module.Page):
       def RunNavigateSteps(self, action_runner):
