@@ -11,7 +11,10 @@ import logging
 
 from flask import make_response, request
 
+from dashboard.api import api_auth
+from dashboard.api import api_request_handler
 from dashboard.common import cloud_metric
+from dashboard.common import utils
 from dashboard.models import anomaly
 from dashboard.pinpoint.handlers import new as new_module
 from dashboard.pinpoint.models import job as job_module
@@ -22,6 +25,15 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 CAS_URL = "https://cas-viewer.appspot.com"
 SWARMING_URL = "https://chrome-swarming.appspot.com"
+
+
+def _CheckUser():
+  if utils.IsDevAppserver():
+    return
+  api_auth.Authorize()
+  if not utils.IsTryjobUser():
+    raise api_request_handler.ForbiddenError()
+
 
 @cloud_metric.APIMetric("pinpoint", "/api/job")
 def JobHandlerGet(job_id):
@@ -328,11 +340,12 @@ def MarshalToJob(args):
   }, job
 
 
+@api_request_handler.RequestHandlerDecoratorFactory(_CheckUser)
 @cloud_metric.APIMetric("pinpoint", "/api/job")
 def JobHandlerPost():
   req_body = request.get_json(force=True)
   logging.info(json.dumps(req_body))
   if not req_body:
-    return make_response(json.dumps({'error': 'Body is none'}), 400)
+    raise api_request_handler.BadRequestError('Body is none')
   resp, _ = MarshalToJob(req_body)
-  return make_response(json.dumps(resp))
+  return resp

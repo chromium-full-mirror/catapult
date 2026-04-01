@@ -182,6 +182,43 @@ class JobTest(test.TestCase):
     data = json.loads(self.testapp.get('/api/job/' + job.job_id).body)
     self.assertEqual(job.started_time.isoformat(), data['started_time'])
 
+  @mock.patch.object(job_handler.utils, 'IsDevAppserver', return_value=False)
+  @mock.patch.object(job_handler.utils, 'IsTryjobUser', return_value=True)
+  @mock.patch.object(job_handler.api_auth, 'Authorize', mock.MagicMock())
+  def testPost_Success(self, *unused_args):
+    namespaced_stored_object.Set(
+        bot_configurations.BOT_CONFIGURATIONS_KEY, {
+            'win-10_laptop_low_end-perf': {
+                'builder': 'foo',
+                'target': 'bar',
+                'bucket': 'try',
+                'swarming_server': 'https://chrome-swarming.appspot.com',
+                'dimensions': [{
+                    'key': 'pool',
+                    'value': 'chrome.tests.pinpoint'
+                }],
+                'browser': 'somebrowser'
+            },
+        })
+    response = self.testapp.post_json('/api/job', TEST_JOB)
+    self.assertEqual(response.status_int, 200)
+    data = json.loads(response.body)
+    self.assertEqual(data['kind'], 'Job')
+
+  @mock.patch.object(job_handler.utils, 'IsDevAppserver', return_value=False)
+  @mock.patch.object(job_handler.utils, 'IsTryjobUser', return_value=False)
+  @mock.patch.object(job_handler.api_auth, 'Authorize', mock.MagicMock())
+  def testPost_Forbidden(self, *unused_args):
+    response = self.testapp.post_json('/api/job', TEST_JOB, expect_errors=True)
+    self.assertEqual(response.status_int, 403)
+
+  @mock.patch.object(job_handler.utils, 'IsDevAppserver', return_value=False)
+  @mock.patch.object(job_handler.utils, 'IsTryjobUser', return_value=True)
+  @mock.patch.object(job_handler.api_auth, 'Authorize', mock.MagicMock())
+  def testPost_EmptyBody(self, *unused_args):
+    response = self.testapp.post_json('/api/job', {}, expect_errors=True)
+    self.assertEqual(response.status_int, 400)
+
 
 class MarshalObjectsTest(test.TestCase):
 
