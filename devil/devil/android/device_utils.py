@@ -2730,8 +2730,6 @@ class DeviceUtils(object):
 
     host_checksums, device_hash_by_split_name = reraiser_thread.RunAsync(
         (calculate_host_checksums, calculate_device_checksums))
-    logging.warning('HOST: %s', repr(host_checksums))
-    logging.warning('DEVICE: %s', repr(device_hash_by_split_name))
     device_checksums_set = set(device_hash_by_split_name.values())
     stale_apks = [
         k for (k, v) in host_checksums.items()
