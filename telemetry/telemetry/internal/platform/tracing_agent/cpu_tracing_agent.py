@@ -4,6 +4,8 @@
 
 from __future__ import division
 from __future__ import absolute_import
+import csv
+import io
 import logging
 import os
 import re
@@ -186,28 +188,18 @@ class WindowsProcessCollector(ProcessCollector):
     to launch that process. If no full command is available for a given process,
     that process is omitted from the returned dictionary.
     """
-    # Skip the header row and strip the trailing newline.
     process_strings = subprocess.check_output(
-        self._GET_COMMANDS_SHELL_COMMAND).decode('utf-8').strip().split(
-            '\n')[2:]
+        self._GET_COMMANDS_SHELL_COMMAND).decode('utf-8')
+    # Skip the leading `#TYPE` line that is added by `ConvertTo-Csv`.
+    process_strings = process_strings[process_strings.index('\n') + 1:]
     command_by_pid = {}
-    for process_string in process_strings:
-      process_string = process_string.strip()
-      command = self._ParseCommandString(process_string)
-
-      # Only return additional information about the command if it's available.
-      if command['command']:
-        command_by_pid[command['pid']] = command['command']
+    # Use csv.DictReader to correctly handle CommandLine values that contain
+    # embedded newlines within quoted CSV fields.
+    for row in csv.DictReader(io.StringIO(process_strings)):
+      if row['CommandLine']:
+        command_by_pid[int(row['ProcessId'])] = row['CommandLine']
 
     return command_by_pid
-
-  def _ParseCommandString(self, command_string):
-    groups = re.match(r'^(.*),"([0-9]+)"$', command_string).groups()
-    command = groups[0]
-    if command.startswith('"') and command.endswith('"'):
-      command = command[1:-1].replace('""', '"')
-    return {'pid': int(groups[1]), 'command': command}
-
 
 class LinuxProcessCollector(ProcessCollector):
   """Class for collecting information about processes on Linux.
