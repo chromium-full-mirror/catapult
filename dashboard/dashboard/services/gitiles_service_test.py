@@ -12,6 +12,7 @@ from unittest import mock
 
 from dashboard.services import gerrit_service
 from dashboard.services import gitiles_service
+from dashboard.services import request
 
 
 class GitilesTest(unittest.TestCase):
@@ -179,5 +180,31 @@ class GitilesTest(unittest.TestCase):
     self._request.assert_called_with(
         '%s/+/%s/path?format=TEXT' % (repository, git_hash),
         use_cache=True,
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)
+
+  def testCommitInfoFallback(self):
+    error = request.RequestError('Forbidden', {'status': '403'}, b'Sorry...')
+    value = {'commit': 'commit_hash', 'status': '200'}
+    self._request_json.side_effect = [error, value]
+
+    result = gitiles_service.CommitInfo(
+        'https://chromium.googlesource.com/repo',
+        'commit_hash',
+    )
+
+    self.assertEqual(result, value)
+    self.assertEqual(result['status'], '200')
+    self.assertEqual(self._request_json.call_count, 2)
+
+    self._request_json.assert_any_call(
+        'https://chromium.googlesource.com/repo/+/commit_hash?format=JSON',
+        use_cache=False,
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)
+
+    self._request_json.assert_any_call(
+        'https://chromium.googlesource.com/a/repo/+/commit_hash?format=JSON',
+        use_cache=False,
         use_auth=True,
         scope=gerrit_service.GERRIT_SCOPE)

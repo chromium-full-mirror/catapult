@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import base64
 import six
+import logging
 
 from dashboard.services import gerrit_service
 from dashboard.services import request
@@ -32,11 +33,25 @@ def CommitInfo(repository_url, git_hash):
   """
   # TODO: Update the docstrings in this file.
   url = '%s/+/%s?format=JSON' % (repository_url, git_hash)
-  return request.RequestJson(
-      url,
-      use_cache=IsHash(git_hash),
-      use_auth=True,
-      scope=gerrit_service.GERRIT_SCOPE)
+  try:
+    return request.RequestJson(
+        url,
+        use_cache=IsHash(git_hash),
+        use_auth=True,
+        scope=gerrit_service.GERRIT_SCOPE)
+  except request.RequestError as e:
+    # Workaround omg/95760 by using a URL with `/a/` path.
+    if e.headers.get('status') == '403':
+      if 'googlesource.com/' in url and 'googlesource.com/a/' not in url:
+        authenticated_url = url.replace('googlesource.com/',
+                                        'googlesource.com/a/')
+        logging.info('Retrying with authenticated URL: %s', authenticated_url)
+        return request.RequestJson(
+            authenticated_url,
+            use_cache=IsHash(git_hash),
+            use_auth=True,
+            scope=gerrit_service.GERRIT_SCOPE)
+    raise
 
 
 def CommitRange(repository_url, first_git_hash, last_git_hash):
