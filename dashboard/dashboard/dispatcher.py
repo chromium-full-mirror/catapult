@@ -133,9 +133,11 @@ def CheckUser():
         'The performance dashboard is deprecated and access is limited. '
         'See go/legacy-chromeperf-aod.', 403)
 
-  # Legacy code path. Should be removed when all users are enrolled in AoD.
-  logging.debug('Allowed user access: %s %s', email, path)
-  return None
+  # All users should be enrolled in AoD by now. Access is blocked by default.
+  logging.debug('Blocked (by default) user access: %s %s', email, path)
+  return make_response(
+      'The performance dashboard is deprecated and access is limited. '
+      'See go/legacy-chromeperf-is-restricted.', 403)
 
 flask_app.wsgi_app = wrap_wsgi_app(flask_app.wsgi_app, use_deferred=True)
 
