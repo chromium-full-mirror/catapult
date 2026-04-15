@@ -10,6 +10,7 @@ from application.clients import sheriff_config_client
 DEFAULT_GROUP_TYPE = datastore_client.AlertGroupType.test_suite
 DEFAULT_UNGROUPED_GROUP_NAME = 'Ungrouped'
 SKIA_UNGROUPED_GROUP_NAME = 'Ungrouped_Skia'
+UNGROUPED_ANOMALIES_PROCESSING_LIMIT = 100
 
 UNGROUPED_GROUP_MAPPING = {
   datastore_client.AlertGroupType.test_suite: DEFAULT_UNGROUPED_GROUP_NAME,
@@ -301,9 +302,22 @@ class AlertGroup:
       logging.debug('[GroupingDebug] No Ungouped is found.')
       return
 
-    ungrouped_anomalies = cls.ds_client.GetMultiEntitiesByKeys(dict(ungrouped).get('anomalies'))
-    logging.info('Loaded %i ungrouped alerts for group type %i. ID(%s)',
-                  len(ungrouped_anomalies), group_type, cls.ds_client.GetEntityId(ungrouped))
+    anomaly_keys = dict(ungrouped).get('anomalies')
+    if not anomaly_keys:
+      logging.debug('[GroupingDebug] No anomalies in Ungrouped bucket.')
+      return
+
+    keys_to_process = anomaly_keys[:UNGROUPED_ANOMALIES_PROCESSING_LIMIT]
+
+    logging.info('[ConfirmFix] Ungrouped bucket contains %i anomaly keys.', len(anomaly_keys))
+    logging.info('[ConfirmFix] Attempting ndb.get_multi on %i keys...', len(keys_to_process))
+
+    ungrouped_anomalies = cls.ds_client.GetMultiEntitiesByKeys(keys_to_process)
+    ungrouped_anomalies = [a for a in ungrouped_anomalies if a is not None]
+
+    formatted_keys = "[%s]" % ", ".join(["Key('Anomaly', %s)" % k.id for k in keys_to_process])
+    logging.info('%i anomalies found in %s group: %s', len(ungrouped_anomalies),
+                 ungrouped.get('name'), formatted_keys)
 
     parity_results = {}
     for anomaly in ungrouped_anomalies:
