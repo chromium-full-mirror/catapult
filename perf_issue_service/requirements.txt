@@ -19,3 +19,4 @@ gunicorn==22.0.0
 urllib3==1.26.1
 
 Werkzeug==2.2.2
+setuptools
