@@ -255,3 +255,5 @@ try_builder("Catapult Presubmit", "Ubuntu", is_presubmit = True)
 try_builder("Dashboard Linux Tryserver", "Ubuntu", is_dashboard = True)
 
 try_builder("Perf Issue Service Linux Tryserver", "Ubuntu", is_perf_issue_service = True, experiment = 100)
+
+exec("./webpagereplay.star")
