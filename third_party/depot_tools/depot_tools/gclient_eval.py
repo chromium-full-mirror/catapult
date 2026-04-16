@@ -136,10 +136,18 @@ _GCLIENT_DEPS_SCHEMA = _NodeDictSchema({
         }),
         # CIPD package.
         _NodeDictSchema({
-            'packages': [_NodeDictSchema({
-                'package': str,
-                'version': str,
-            })],
+            'packages': [
+                schema.Or(
+                    _NodeDictSchema({
+                        'package': str,
+                        'version': str
+                    }),
+                    _NodeDictSchema({
+                        'package': str,
+                        'version_file': str
+                    }),
+                ),
+            ],
             schema.Optional('condition'):
             str,
             schema.Optional('dep_type', default='cipd'):
@@ -860,6 +868,10 @@ def SetCIPD(gclient_dict, dep_name, package_name, new_version):
     # TODO(ehmaldonado): Support Var in package's version.
     node = packages[0].GetNode('version')
     if node is None:
+        if packages[0].GetNode('version_file') is not None:
+            raise NotImplementedError("version_files are not yet supported: %s:%s" %
+                                      (dep_name, package_name))
+
         raise ValueError(
             "The deps entry for %s:%s has no formatting information." %
             (dep_name, package_name))
@@ -957,6 +969,8 @@ def GetCIPD(gclient_dict, dep_name, package_name):
             "There must be exactly one package with the given name (%s), "
             "%s were found." % (package_name, len(packages)))
 
+    if packages[0].get('version_file') is not None:
+        raise NotImplementedError("version file is not supported")
     return packages[0]['version']
 
 

@@ -739,6 +739,23 @@ class CipdTest(unittest.TestCase):
                 '}',
             ]))
 
+    def test_parsing_version_file(self):
+        local_scope = gclient_eval.Exec(
+            file_join([
+                'deps = {',
+                '    "src/cipd/package": {',
+                '        "packages": [',
+                '            {',
+                '                "package": "some/cipd/package",',
+                '                "version_file": "some/file.txt",',
+                '            },',
+                '        ],',
+                '        "dep_type": "cipd",',
+                '    },',
+                '}',
+            ]))
+        self.assertTrue(True)
+
 
 class RevisionTest(unittest.TestCase):
     def assert_gets_and_sets_revision(self,
