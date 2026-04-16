@@ -88,6 +88,14 @@ class PinpointNewPrefillRequestHandlerTest(testing_common.TestCase):
                                  {'test_path': 'M/B/S/foo'})
     self.assertEqual({'story_filter': 'foo:bar'}, json.loads(response.body))
 
+  def testPost_InvalidTestPath(self):
+    response = self.testapp.post('/pinpoint/new/prefill',
+                                 {'test_path': 'invalid/test/path'},
+                                 expect_errors=True)
+    self.assertEqual(response.status_int, 400)
+    self.assertEqual({'error': 'Failed to get test for invalid/test/path'},
+                     json.loads(response.body))
+
 
 class PinpointNewPerfTryRequestHandlerTest(testing_common.TestCase):
 
@@ -109,7 +117,8 @@ class PinpointNewPerfTryRequestHandlerTest(testing_common.TestCase):
   @mock.patch.object(utils, 'IsValidSheriffUser',
                      mock.MagicMock(return_value=False))
   def testPost_NotSheriff(self):
-    response = self.testapp.post('/pinpoint/new/perf_try')
+    response = self.testapp.post('/pinpoint/new/perf_try', expect_errors=True)
+    self.assertEqual(response.status_int, 400)
     self.assertEqual({u'error': u'User "foo@chromium.org" not authorized.'},
                      json.loads(response.body))
 
@@ -118,7 +127,8 @@ class PinpointNewPerfTryRequestHandlerTest(testing_common.TestCase):
   def testPost_NoStoryFilter(self):
     params = GenerateTryRequestParams(
         {'test_path': 'ChromiumPerf/android-webview-nexus5x/system_health/foo'})
-    response = self.testapp.post('/pinpoint/new/perf_try', params=params)
+    response = self.testapp.post('/pinpoint/new/perf_try', params=params, expect_errors=True)
+    self.assertEqual(response.status_int, 400)
     self.assertEqual({u'error': u'Story is required.'},
                      json.loads(response.body))
 
@@ -324,7 +334,8 @@ class PinpointNewBisectRequestHandlerTest(testing_common.TestCase):
   @mock.patch.object(utils, 'IsValidSheriffUser',
                      mock.MagicMock(return_value=False))
   def testPost_NotSheriff(self):
-    response = self.testapp.post('/pinpoint/new/bisect')
+    response = self.testapp.post('/pinpoint/new/bisect', expect_errors=True)
+    self.assertEqual(response.status_int, 400)
     self.assertEqual({u'error': u'User "foo@chromium.org" not authorized.'},
                      json.loads(response.body))
 
@@ -337,11 +348,12 @@ class PinpointNewBisectRequestHandlerTest(testing_common.TestCase):
     mock_pinpoint.return_value = {'error': 'something'}
     self.SetCurrentUser('foo@chromium.org')
     params = {'a': 'b', 'c': 'd'}
-    response = self.testapp.post('/pinpoint/new/bisect', params)
+    response = self.testapp.post('/pinpoint/new/bisect', params, expect_errors=True)
 
     expected_args = mock.call({'test': 'result'})
     self.assertEqual([expected_args], mock_pinpoint.call_args_list)
     self.assertEqual({'error': 'something'}, json.loads(response.body))
+    self.assertEqual(response.status_int, 400)
 
   @mock.patch.object(utils, 'IsValidSheriffUser',
                      mock.MagicMock(return_value=True))
@@ -420,11 +432,12 @@ class PinpointNewBisectRequestHandlerTest(testing_common.TestCase):
                 utils.ConvertBytesBeforeJsonDumps(
                     [anomaly_entity.key.urlsafe()]))
     }
-    response = self.testapp.post('/pinpoint/new/bisect', params)
+    response = self.testapp.post('/pinpoint/new/bisect', params, expect_errors=True)
 
     expected_args = mock.call({'test': 'result'})
     self.assertEqual([expected_args], mock_pinpoint.call_args_list)
     self.assertEqual({'error': 'bar'}, json.loads(response.body))
+    self.assertEqual(response.status_int, 400)
     self.assertEqual([], anomaly_entity.pinpoint_bisects)
 
   @mock.patch.object(utils, 'IsValidSheriffUser',

@@ -36,12 +36,21 @@ class InvalidParamsError(Exception):
   pass
 
 
+def _GetStatus(result):
+  return 400 if isinstance(result, dict) and "error" in result else 200
+
+
 def PinpointNewBisectPost():
-  return json.dumps(NewPinpointBisect(request.values))
+  result = NewPinpointBisect(request.values)
+  return json.dumps(result), _GetStatus(result)
 
 
 def PinpointNewPrefillPost():
-  _, test = _GetTestKeyAndTest(request.values.get('test_path'))
+  try:
+    _, test = _GetTestKeyAndTest(request.values.get('test_path'))
+  except InvalidParamsError as e:
+    return json.dumps({'error': str(e)}), 400
+
   return json.dumps({'story_filter': test.unescaped_story_name})
 
 
@@ -61,9 +70,10 @@ def PinpointNewPerfTryPost():
   try:
     pinpoint_params = PinpointParamsFromPerfTryParams(request.values)
   except InvalidParamsError as e:
-    return json.dumps({'error': str(e)})
+    return json.dumps({'error': str(e)}), 400
 
-  return json.dumps(pinpoint_service.NewJob(pinpoint_params))
+  result = pinpoint_service.NewJob(pinpoint_params)
+  return json.dumps(result), _GetStatus(result)
 
 
 def NewPinpointBisect(job_params):
@@ -374,7 +384,7 @@ def PinpointParamsFromBisectParams(params):
 
   end_commit = params.get('end_commit', params.get('end_git_hash'))
   if not end_commit:
-    logging.error('[Pinpoint Request] Start commit is required.')
+    logging.error('[Pinpoint Request] End commit is required.')
     raise InvalidParamsError('End commit is required.')
 
   start_git_hash = ResolveToGitHash(start_commit, benchmark)
