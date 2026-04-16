@@ -23,6 +23,7 @@ _GERRIT_CHANGE_INFO = {
     'project': 'chromium/src',
     'subject': 'Subject',
     'current_revision': 'current revision',
+    'current_revision_number': 5,
     'revisions': {
         'current revision': {
             '_number': 5,
@@ -68,7 +69,7 @@ _GERRIT_CHANGE_INFO = {
                                    'Change-Id: I0123456789abcdef\n',
         },
     },
-    'status': 'NEW'
+    'status': 'NEW',
 }
 _MERGED_CHANGE_INFO = copy.deepcopy(_GERRIT_CHANGE_INFO)
 _MERGED_CHANGE_INFO['status'] = 'MERGED'
@@ -110,32 +111,6 @@ class GerritPatchTest(test.TestCase):
         'patch_storage': 'gerrit',
     }
     self.assertEqual(p.BuildParameters(), expected)
-
-    self.get_change.return_value = copy.deepcopy(_MERGED_CHANGE_INFO)
-
-    p = Patch('current revision')
-    expected = {
-        'patch_gerrit_url': 'https://codereview.com',
-        'patch_issue': 658277,
-        'patch_project': 'chromium/src',
-        'patch_ref': 'refs/changes/77/658277/4',
-        'patch_repository_url': 'https://googlesource.com/chromium/src',
-        'patch_set': 4,
-        'patch_storage': 'gerrit',
-    }
-    self.assertEqual(p.BuildParameters(), expected)
-
-  def testBuildsetTags(self):
-    p = Patch('current revision')
-    expected = 'buildset:patch/gerrit/codereview.com/658277/5'
-    self.assertEqual(p.BuildsetTags(), expected)
-
-  def testBuildsetTagsMerged(self):
-    self.get_change.return_value = copy.deepcopy(_MERGED_CHANGE_INFO)
-
-    p = Patch('current revision')
-    expected = 'buildset:patch/gerrit/codereview.com/658277/4'
-    self.assertEqual(p.BuildsetTags(), expected)
 
   def testAsDict(self):
     p = Patch('current revision')
@@ -262,3 +237,47 @@ class GerritPatchTest(test.TestCase):
         'revision': 4,
     })
     self.assertEqual(p, Patch('other revision'))
+
+  def testFromDict_MergedPatch(self):
+    self.get_change.return_value = _MERGED_CHANGE_INFO
+    # _MERGED_CHANGE_INFO['current_revision_number'] is 5.
+    # The logic should decrement it to 4, which matches 'other revision'.
+    p = patch.GerritPatch.FromDict({
+        'server': 'https://codereview.com',
+        'change': 658277,
+    })
+    self.assertEqual(p.revision, 'other revision')
+
+  def testFromDict_MergedPatch_WithExplicitRevision(self):
+    self.get_change.return_value = _MERGED_CHANGE_INFO
+    # _MERGED_CHANGE_INFO['current_revision_number'] is 5.
+    # Explicitly providing revision 5 should also result in it being
+    # decremented to 4.
+    p = patch.GerritPatch.FromDict({
+        'server': 'https://codereview.com',
+        'change': 658277,
+        'revision': 5,
+    })
+    self.assertEqual(p.revision, 'other revision')
+
+  def testFromDict_NewPatch(self):
+    self.get_change.return_value = _GERRIT_CHANGE_INFO
+    # _GERRIT_CHANGE_INFO['status'] is 'NEW'.
+    # It should NOT decrement the revision.
+    p = patch.GerritPatch.FromDict({
+        'server': 'https://codereview.com',
+        'change': 658277,
+    })
+    self.assertEqual(p.revision, 'current revision')
+
+  def testFromDict_MergedPatch_WithOlderRevision(self):
+    self.get_change.return_value = _MERGED_CHANGE_INFO
+    # _MERGED_CHANGE_INFO['current_revision_number'] is 5.
+    # Providing revision 4 should NOT result in it being decremented,
+    # because it's not the current one.
+    p = patch.GerritPatch.FromDict({
+        'server': 'https://codereview.com',
+        'change': 658277,
+        'revision': 4,
+    })
+    self.assertEqual(p.revision, 'other revision')

@@ -238,6 +238,7 @@ class ChangeTest(test.TestCase):
 
   def testFromDictWithAllFields(self):
     self.get_change.return_value = {
+        'status': 'NEW',
         'id': 'repo~branch~id',
         'revisions': {
             'abc123': {}

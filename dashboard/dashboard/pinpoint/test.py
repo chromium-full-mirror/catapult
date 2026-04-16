@@ -75,6 +75,7 @@ class TestCase(testing_common.TestCase):
             },
         },
         'status': 'NEW',
+        'current_revision_number': 5,
     }
 
   def _PopulateData(self):
