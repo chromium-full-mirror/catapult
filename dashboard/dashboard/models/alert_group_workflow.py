@@ -1094,12 +1094,10 @@ class AlertGroupWorkflow:
 
     template_args = {}
     try:
-      # Add the public url only if at least one of the anomalies in the group
-      # are public
-      if any(not r.test.get().internal_only for r in regressions):
-        skia_urls_public = skia_helper.GetSkiaUrlsForAlertGroup(
-            self._group.key.string_id(), False, list(masters))
-        template_args['skia_urls_text_public'] = skia_urls_public
+      # Always add the public url, even if all anomalies are private.
+      skia_urls_public = skia_helper.GetSkiaUrlsForAlertGroup(
+          self._group.key.string_id(), False, list(masters))
+      template_args['skia_urls_text_public'] = skia_urls_public
     except Exception:  #pylint: disable=broad-except
       template_args['skia_urls_text_public'] = None
     try:
