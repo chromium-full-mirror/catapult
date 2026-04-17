@@ -1188,7 +1188,7 @@ class FileBugTest(testing_common.TestCase):
   @mock.patch('dashboard.common.file_bug.auto_bisect.StartNewBisectForBug',
               mock.MagicMock(return_value={'issue_id': 123}))
   def testSkiaFileBug_WithHost_IncludesSkiaLinksInComment(self):
-    """Tests that providing a host adds Skia-specific links to the bug comment."""
+    """Tests that providing a host adds Perf 2.0 links to the bug comment."""
     anomaly_keys = self._AddSampleAlerts()
     alerts_to_file = [anomaly_keys[0], anomaly_keys[1]]
     integer_ids = [k.id() for k in alerts_to_file]
@@ -1205,12 +1205,12 @@ class FileBugTest(testing_common.TestCase):
 
     comment = self._issue_tracker_service.add_comment_kwargs['comment']
 
-    self.assertIn('<b>All graphs for this bug:</b>', comment)
+    self.assertIn('<b>Graphs on New (Perf 2.0) host:</b>', comment)
+    self.assertIn('https://perf.skia.org/u/?bugID=', comment)
+
+    self.assertIn('<b>All Legacy graphs for this bug:</b>', comment)
     self.assertIn('https://chromeperf.appspot.com/group_report?bug_id=',
                   comment)
-
-    self.assertIn('<b>Graphs on Skia host:</b>', comment)
-    self.assertIn('https://perf.skia.org/u/?bugID=', comment)
 
     expected_id_string = ','.join(map(str, integer_ids))
     expected_skia_sid = short_uri.GetOrCreatePageState(expected_id_string)

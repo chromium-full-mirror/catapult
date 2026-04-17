@@ -56,10 +56,7 @@ def _AdditionalDetails(bug_id, project_id, alerts, skia_host=None):
   alert_keys = utils.ConvertBytesBeforeJsonDumps(_UrlsafeKeys(alerts))
   sid = short_uri.GetOrCreatePageState(json.dumps(alert_keys))
   alerts_url = '%s?sid=%s' % (base_url, sid)
-  comment = '<b>All graphs for this bug:</b>\n  %s\n\n' % bug_page_url
-  comment += (
-      '(For debugging:) Original alerts at time of bug-filing:\n  %s\n' %
-      alerts_url)
+  comment = ''
 
   if skia_host:
     # For Skia, alerts are in integer ID form
@@ -72,9 +69,17 @@ def _AdditionalDetails(bug_id, project_id, alerts, skia_host=None):
     skia_bug_page_url = '%s?bugID=%s' % (skia_base_url, bug_id)
     skia_alerts_url = '%s?sid=%s' % (skia_base_url, skia_sid)
 
-    comment += ('\n<b>Graphs on Skia host:</b>\n  %s\n\n' % skia_bug_page_url)
-    comment += ('(For debugging:) Original alerts on Skia host:\n  %s\n' %
-                skia_alerts_url)
+    comment += ('<b>Graphs on New (Perf 2.0) host:</b>\n  %s\n\n' %
+                skia_bug_page_url)
+    comment += (
+        '(For debugging:) Original alerts on New (Perf 2.0) host:\n  %s\n' %
+        skia_alerts_url)
+    comment += '\n'
+
+  comment += '<b>All Legacy graphs for this bug:</b>\n  %s\n\n' % bug_page_url
+  comment += (
+      '(For debugging:) Original Legacy alerts at time of bug-filing:\n  %s\n' %
+      alerts_url)
 
   bot_names = {a.bot_name for a in alerts}
   if bot_names:
