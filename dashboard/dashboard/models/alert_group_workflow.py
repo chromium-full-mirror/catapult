@@ -237,25 +237,52 @@ class AlertGroupWorkflow:
 
   def _FindDuplicateGroupKeys(self):
     try:
-      group_keys = perf_issue_service_client.GetDuplicateGroupKeys(
-          self._group.key.string_id())
+      group_id = self._group.key.string_id()
+      logging.info(
+          '[_FindDuplicateGroupKeys] Fetching duplicate group keys for ID: %s',
+          group_id)
+      group_keys = perf_issue_service_client.GetDuplicateGroupKeys(group_id)
+      logging.info(
+          '[_FindDuplicateGroupKeys] Found %d duplicate group keys for %s',
+          len(group_keys), self._group.key)
       return group_keys
     except (ValueError, datastore_errors.BadValueError):
       # only 'ungrouped' has integer key, which we should not find duplicate.
-      logging.debug('[GroupingDebug] Failed to get duplicate groups. %s',
-                    self._group.key)
+      logging.info(
+          '[_FindDuplicateGroupKeys] Failed to get duplicate groups for key: '
+          '%s (likely an integer key)', self._group.key)
       return []
+    except Exception as e:
+      logging.error(
+          '[_FindDuplicateGroupKeys] Unexpected error fetching duplicates for '
+          '%s: %s', self._group.key, str(e))
+      raise
 
   def _FindDuplicateGroups(self):
+    logging.info(
+        '[_FindDuplicateGroups] Querying active duplicate groups for %s',
+        self._group.key)
     query = alert_group.AlertGroup.query(
         alert_group.AlertGroup.active == True,
         alert_group.AlertGroup.canonical_group == self._group.key)
-    return query.fetch()
+    results = query.fetch()
+    logging.info(
+        '[_FindDuplicateGroups] Found %d active duplicate groups for %s',
+        len(results), self._group.key)
+    return results
 
   def _FindRelatedAnomalies(self, groups):
+    group_keys = [g.key for g in groups]
+    logging.info(
+        '[_FindRelatedAnomalies] Querying anomalies for %d groups '
+        '(including %s)', len(groups), self._group.key)
     query = anomaly.Anomaly.query(
-        anomaly.Anomaly.groups.IN([g.key for g in groups]))
-    return query.fetch()
+        anomaly.Anomaly.groups.IN(group_keys))
+    results = query.fetch()
+    logging.info(
+        '[_FindRelatedAnomalies] Found %d related anomalies for group %s',
+        len(results), self._group.key)
+    return results
 
   def _PrepareGroupUpdate(self):
     """Prepares default input for the workflow Process
@@ -279,13 +306,19 @@ class AlertGroupWorkflow:
       logging.warning('Parity logic failed in _FindDuplicateGroups(%s). %s.',
                       self._group.key, str(e))
 
+    logging.info(
+        '[_PrepareGroupUpdate] Fetching related anomalies for group %s',
+        self._group.key)
     duplicate_groups = [
-        ndb.Key('AlertGroup', k).get() for k in duplicate_group_keys
+        g for g in ndb.get_multi(
+            [ndb.Key('AlertGroup', k) for k in duplicate_group_keys])
+        if g is not None
     ]
     anomalies = self._FindRelatedAnomalies([self._group] + duplicate_groups)
-    logging.debug(
-        '[GroupingDebug] Anomalies %s found for group %s and duplicates %s',
-        anomalies, self._group.key, duplicate_group_keys)
+    logging.info(
+        '[_PrepareGroupUpdate] Found %d anomalies for group %s and '
+        'duplicates %s', len(anomalies), self._group.key,
+        duplicate_group_keys)
 
     now = datetime.datetime.utcnow()
     issue = None
@@ -323,7 +356,10 @@ class AlertGroupWorkflow:
     initialized."""
 
     logging.info('Processing workflow for group %s', self._group.key)
-    update = update or self._PrepareGroupUpdate()
+    if not update:
+      logging.info(
+          '[Process] Preparing group update for %s', self._group.key)
+      update = self._PrepareGroupUpdate()
     logging.info('%d anomalies', len(update.anomalies))
 
     # TODO(crbug.com/1240370): understand why Datastore query may return empty
@@ -331,8 +367,8 @@ class AlertGroupWorkflow:
     if (not update.anomalies and self._group.anomalies
         and self._group.group_type != alert_group.AlertGroup.Type.reserved):
       logging.error(
-          'No anomalies detected. Skipping this run for %s. with anomalies %s ',
-          self._group.key, self._group.anomalies)
+          'No anomalies detected. Skipping this run for %s. with %d anomalies ',
+          self._group.key, len(self._group.anomalies))
       return self._group.key
 
     # Process input before we start processing the group.
