@@ -372,34 +372,42 @@ class AlertGroupWorkflow:
       return self._group.key
 
     # Process input before we start processing the group.
-    for a in update.anomalies:
-      subscriptions, _ = self._sheriff_config.Match(
-          a.test.string_id(), check=True)
-      a.subscriptions = subscriptions
-      matching_subs = [
-          s for s in subscriptions if s.name == self._group.subscription_name
-      ]
-      a.auto_triage_enable = any(s.auto_triage_enable for s in matching_subs)
-      if a.auto_triage_enable:
-        logging.info('auto_triage_enable for %s due to subscription: %s',
-                     a.test.string_id(),
-                     [s.name for s in matching_subs if s.auto_triage_enable])
+    if not self._group.name.startswith('Ungrouped'):
+      for a in update.anomalies:
+        # Skip corrupted anomalies that lack required math properties.
+        if a.median_before_anomaly is None or a.median_after_anomaly is None:
+          continue
 
-      a.auto_merge_enable = any(s.auto_merge_enable for s in matching_subs)
+        subscriptions, _ = self._sheriff_config.Match(
+            a.test.string_id(), check=True)
+        a.subscriptions = subscriptions
+        matching_subs = [
+            s for s in subscriptions if s.name == self._group.subscription_name
+        ]
+        a.auto_triage_enable = any(s.auto_triage_enable for s in matching_subs)
+        if a.auto_triage_enable:
+          logging.info('auto_triage_enable for %s due to subscription: %s',
+                       a.test.string_id(),
+                       [s.name for s in matching_subs if s.auto_triage_enable])
 
-      if a.auto_merge_enable:
-        logging.info('auto_merge_enable for %s due to subscription: %s',
-                     a.test.string_id(),
-                     [s.name for s in matching_subs if s.auto_merge_enable])
+        a.auto_merge_enable = any(s.auto_merge_enable for s in matching_subs)
 
-      a.auto_bisect_enable = any(s.auto_bisect_enable for s in matching_subs)
-      a.relative_delta = (
-          abs(a.absolute_delta / float(a.median_before_anomaly))
-          if a.median_before_anomaly != 0. else float('Inf'))
+        if a.auto_merge_enable:
+          logging.info('auto_merge_enable for %s due to subscription: %s',
+                       a.test.string_id(),
+                       [s.name for s in matching_subs if s.auto_merge_enable])
+
+        a.auto_bisect_enable = any(s.auto_bisect_enable for s in matching_subs)
+        a.relative_delta = (
+            abs(a.absolute_delta / float(a.median_before_anomaly))
+            if a.median_before_anomaly != 0. else float('Inf'))
 
     # anomaly.groups are updated in upload-processing. Here we update
     # the group.anomalies
     added = self._UpdateAnomalies(update.anomalies)
+
+    if self._group.name.startswith('Ungrouped'):
+      return self._CommitGroup()
 
     if update.issue:
       group_merged = self._UpdateCanonicalGroup(update.anomalies,
@@ -456,8 +464,8 @@ class AlertGroupWorkflow:
   def _UpdateAnomalies(self, anomalies):
     added = [a for a in anomalies if a.key not in self._group.anomalies]
     self._group.anomalies = [a.key for a in anomalies]
-    logging.debug('[GroupingDebug] Group %s is associated with anomalies %s.',
-                  self._group.key, self._group.anomalies)
+    logging.debug('[GroupingDebug] Group %s is associated with %d anomalies.',
+                  self._group.key, len(self._group.anomalies))
     return added
 
   def _UpdateStatus(self, issue):
