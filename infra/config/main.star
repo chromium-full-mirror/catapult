@@ -72,6 +72,27 @@ luci.logdog(gs_bucket = "chromium-luci-logdog")
 
 luci.bucket(name = "try")
 
+luci.bucket(
+    name = "try.shadow",
+    shadows = "try",
+    constraints = luci.bucket_constraints(
+        pools = ["luci.flex.try"],
+        service_accounts = [
+            "catapult-try-builder@chops-service-accounts.iam.gserviceaccount.com",
+        ],
+    ),
+    bindings = [
+        # For led permissions.
+        luci.binding(
+            roles = "role/buildbucket.creator",
+            groups = [
+                "mdb/chrome-build-access-sphinx",
+            ],
+        ),
+    ],
+    dynamic = True,
+)
+
 # Allow LED users to trigger swarming tasks directly when debugging try
 # builders.
 luci.binding(
