@@ -24,7 +24,7 @@ luci.cq_group(
 )
 
 luci.builder(
-    name = "WebPageReplay Presubmit",
+    name = "webpagereplay-linux-presubmit",
     bucket = "try",
     executable = luci.recipe(
         name = "run_presubmit",
@@ -46,7 +46,35 @@ luci.builder(
 )
 
 luci.cq_tryjob_verifier(
-    builder = "WebPageReplay Presubmit",
+    builder = "webpagereplay-linux-presubmit",
+    cq_group = "webpagereplay",
+    disable_reuse = True,
+)
+
+luci.builder(
+    name = "webpagereplay-linux-tests",
+    bucket = "try",
+    executable = luci.recipe(
+        name = "webpagereplay",
+        cipd_package = "infra/recipe_bundles/chromium.googlesource.com/chromium/tools/build",
+        use_bbagent = True,
+    ),
+    build_numbers = True,
+    dimensions = {
+        "pool": "luci.flex.try",
+        "os": "Ubuntu-24.04",
+        "cpu": "x86-64",
+    },
+    execution_timeout = 2 * time.hour,
+    service_account = "catapult-try-builder@chops-service-accounts.iam.gserviceaccount.com",
+    properties = {
+        "$kitchen": {"devshell": True, "git_auth": True},
+        "repo_name": "webpagereplay",
+    },
+)
+
+luci.cq_tryjob_verifier(
+    builder = "webpagereplay-linux-tests",
     cq_group = "webpagereplay",
     disable_reuse = True,
 )
