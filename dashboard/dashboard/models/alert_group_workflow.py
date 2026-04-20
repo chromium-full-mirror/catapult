@@ -374,10 +374,6 @@ class AlertGroupWorkflow:
     # Process input before we start processing the group.
     if not self._group.name.startswith('Ungrouped'):
       for a in update.anomalies:
-        # Skip corrupted anomalies that lack required math properties.
-        if a.median_before_anomaly is None or a.median_after_anomaly is None:
-          continue
-
         subscriptions, _ = self._sheriff_config.Match(
             a.test.string_id(), check=True)
         a.subscriptions = subscriptions
