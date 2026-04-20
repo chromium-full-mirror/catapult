@@ -355,7 +355,7 @@ class AlertGroupWorkflow:
     Returns the key for the associated group when the workflow was
     initialized."""
 
-    logging.info('Processing workflow for group %s', self._group.key)
+    logging.info('Processing workflow for group %s (name: %s)', self._group.key, self._group.name)
     if not update:
       logging.info(
           '[Process] Preparing group update for %s', self._group.key)
@@ -400,6 +400,7 @@ class AlertGroupWorkflow:
 
     # anomaly.groups are updated in upload-processing. Here we update
     # the group.anomalies
+    logging.info('[Process] Calling _UpdateAnomalies for %d items.', len(update.anomalies))
     added = self._UpdateAnomalies(update.anomalies)
 
     if self._group.name.startswith('Ungrouped'):
@@ -458,7 +459,8 @@ class AlertGroupWorkflow:
     return self._group.put()
 
   def _UpdateAnomalies(self, anomalies):
-    added = [a for a in anomalies if a.key not in self._group.anomalies]
+    existing_keys = set(self._group.anomalies)
+    added = [a for a in anomalies if a.key not in existing_keys]
     self._group.anomalies = [a.key for a in anomalies]
     logging.debug('[GroupingDebug] Group %s is associated with %d anomalies.',
                   self._group.key, len(self._group.anomalies))
