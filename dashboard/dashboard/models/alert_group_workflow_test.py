@@ -3452,3 +3452,37 @@ class AlertGroupWorkflowTest(testing_common.TestCase):
     update = w._PrepareGroupUpdate()
 
     self.assertIsNone(update.canonical_group)
+
+  def testProcess_SkipsCorruptedAnomalies(self):
+    # Anomaly missing median values
+    corrupted_anomaly = self._AddAnomaly(
+        median_before_anomaly=None, median_after_anomaly=None)
+    normal_anomaly = self._AddAnomaly()
+
+    group = self._AddAlertGroup(
+        normal_anomaly,
+        anomalies=[corrupted_anomaly, normal_anomaly],
+        issue=self._issue_tracker.issue,
+        status=alert_group.AlertGroup.Status.triaged,
+    )
+    self._sheriff_config.patterns = {
+        '*': [
+            subscription.Subscription(name='sheriff', auto_triage_enable=True)
+        ],
+    }
+    w = alert_group_workflow.AlertGroupWorkflow(
+        group.get(),
+        sheriff_config=self._sheriff_config,
+    )
+
+    # This update shouldn't crash with AttributeError on auto_triage_enable
+    # or subscriptions during the issues update logic.
+    self._UpdateTwice(
+        workflow=w,
+        update=alert_group_workflow.AlertGroupWorkflow.GroupUpdate(
+            now=datetime.datetime.utcnow(),
+            anomalies=ndb.get_multi([corrupted_anomaly, normal_anomaly]),
+            issue=self._issue_tracker.issue,
+        ))
+
+    # We just want to ensure it completes without raising an Exception

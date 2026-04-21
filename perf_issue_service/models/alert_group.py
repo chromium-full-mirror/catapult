@@ -197,11 +197,16 @@ class AlertGroup:
         # replace empty project id using the default 'chromium'
         project_id_in_group = g.get('project_id', '') or 'chromium'
         project_id_in_subscription = s.get('monorail_project_id', '') or 'chromium'
-        if (g['domain'] == master_name and
-            g['subscription_name'] == s.get('name') and
-            project_id_in_group == project_id_in_subscription and
-            max(g['revision']['start'], start_rev) <= min(g['revision']['end'], end_rev) and
-            (abs(g['revision']['start'] - start_rev) + abs(g['revision']['end'] - end_rev) <= 100 or g['domain'] != 'ChromiumPerf')):
+        if (g.get('domain') == master_name
+            and g.get('subscription_name') == s.get('name')
+            and project_id_in_group == project_id_in_subscription
+            and g.get('revision') and 'start' in g['revision']
+            and 'end' in g['revision']
+            and max(g['revision']['start'], start_rev) <= min(
+                g['revision']['end'], end_rev)
+            and (abs(g['revision']['start'] - start_rev) +
+                 abs(g['revision']['end'] - end_rev) <= 100
+                 or g.get('domain') != 'ChromiumPerf')):
           has_overlapped = True
           result_groups.add(g.key.name)
       if not has_overlapped:
@@ -341,7 +346,9 @@ class AlertGroup:
 
     return parity_results
 
-  def _GetUngroupedGroupName(group_type:int=datastore_client.AlertGroupType.test_suite):
+  @staticmethod
+  def _GetUngroupedGroupName(
+      group_type: int = datastore_client.AlertGroupType.test_suite):
     group_name = UNGROUPED_GROUP_MAPPING.get(group_type, None)
     if not group_name:
       logging.warning('Unsupported group type: %i', group_type)
