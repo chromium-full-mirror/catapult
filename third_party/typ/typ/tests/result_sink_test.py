@@ -18,6 +18,8 @@ import json
 import os
 import unittest
 
+from unittest.mock import patch
+
 from typ import expectations_parser
 from typ import json_results
 from typ import result_sink
@@ -987,6 +989,32 @@ class ResultSinkReporterTest(unittest.TestCase):
           'caseNameComponents': ['worklet-animation.https.html'],
         }
         self.assertEqual(retval['testIdStructured'], struct_test_dict)
+
+    def testStructureTestIdEnvVar(self):
+        with patch.dict(os.environ, {'RESULTDB_MODULE_SCHEME': 'flat'}):
+            retval = result_sink._create_json_test_result(
+                'foo.bar.baz',
+                'test_prefix.',
+                json_results.ResultType.Pass, True,
+                {'artifact': {'filePath': 'somepath'}},
+                [('tag_key', 'tag_value')], '<pre>summary</pre>', 1e-10, {}, None,
+                module_scheme=result_sink.ModuleScheme.PYUNIT)
+            struct_test_dict = {
+              'coarseName': None,
+              'fineName': None,
+              'caseNameComponents': ['foo.bar.baz'],
+            }
+            self.assertEqual(retval['testIdStructured'], struct_test_dict)
+
+        with patch.dict(os.environ, {'RESULTDB_MODULE_SCHEME': 'invalid'}):
+            with self.assertRaises(ValueError):
+                retval = result_sink._create_json_test_result(
+                    'foo.bar.baz',
+                    'test_prefix.',
+                    json_results.ResultType.Pass, True,
+                    {'artifact': {'filePath': 'somepath'}},
+                    [('tag_key', 'tag_value')], '<pre>summary</pre>', 1e-10, {}, None,
+                    module_scheme=result_sink.ModuleScheme.PYUNIT)
 
     def testTruncateBasicCase(self):
         input = 'a' * 1050
