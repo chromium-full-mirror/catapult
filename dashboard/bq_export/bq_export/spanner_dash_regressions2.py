@@ -74,6 +74,15 @@ class Regressions2Row(NamedTuple):
 coders.registry.register_coder(Regressions2Row, coders.RowCoder)
 
 
+# source of truth: dashboard/skia_export/skia_export/skia_pipeline.py
+# copied it not to bother with relative imports.
+V8_MASTERS = [
+    'internal.client.v8',
+    'client.v8',
+    'client.v8.perf',
+]
+
+
 def getClusterType(entity):
   improvement_direction = entity.get('improvement_direction')
   up = improvement_direction == 'up'
@@ -86,9 +95,22 @@ def getClusterType(entity):
   return None
 
 
-def Regressions2EntityToRowDict(entity):
+def Regressions2EntityToRowDict(entity, master_list):
   entities_read.inc()
   try:
+    test_path = ''
+    parts = []
+    if 'test' in entity:
+      test_path = TestPath(entity['test'])
+      parts = test_path.split('/')
+
+    if master_list:
+      if 'test' not in entity:
+        return []
+      master = parts[0] if len(parts) > 0 else None
+      if master not in master_list:
+        return []
+
     # will have to be populated later.
     alert_id = None
 
@@ -154,8 +176,6 @@ def Regressions2EntityToRowDict(entity):
 
     paramset = {}
     if 'test' in entity:
-      test_path = TestPath(entity['test'])
-      parts = test_path.split('/')
       if len(parts) > 0:
         paramset["master"] = [parts[0]]
       if len(parts) > 1:
@@ -211,8 +231,6 @@ def Regressions2EntityToRowDict(entity):
 
     # Not sure if that's how percents work.
     if 'test' in entity:
-      test_path = TestPath(entity['test'])
-      parts = test_path.split('/')
       if len(parts) > 0:
         cluster_summary["param_summaries2"].append({
             "value": f"master={parts[0]}",
@@ -256,6 +274,7 @@ def main():
   parser.add_argument('--instance', required=True)
   parser.add_argument('--database', required=True)
   parser.add_argument('--table', default='regressions2')
+  parser.add_argument('--master', default='')
 
   args, beam_args = parser.parse_known_args()
 
@@ -263,6 +282,13 @@ def main():
   project_spanner = 'skia-infra-corp'
   options = PipelineOptions(beam_args)
   options.view_as(GoogleCloudOptions).project = project
+
+  masters = []
+  # we cannot pass argument "master" directly, since turquoise and
+  # fuchsia masters are separate.
+  # Assigning masters this way provides more verbosity.
+  if args.master == 'v8':
+    masters = V8_MASTERS
 
   bq_options = options.view_as(BqExportOptions)
 
@@ -280,7 +306,8 @@ def main():
   anomaly_dicts = (
       entities
       | 'ConvertEntityToRow(Regressions2)' >> beam.FlatMap(
-          Regressions2EntityToRowDict).with_output_types(Regressions2Row))
+          Regressions2EntityToRowDict,
+          master_list=masters).with_output_types(Regressions2Row))
 
   _ = (
       anomaly_dicts
@@ -306,4 +333,4 @@ if __name__ == '__main__':
 # dashboard/bq_export/bq_export/spanner_dash_regressions2.py \
 # --instance=tfgen-spanid-20250415224933743     --database=mordeckimarcin_test \
 # --table=regressions2     --runner=DirectRunner --end_date=yesterday \
-# --num_days=1
+# --num_days=1 --master=v8
