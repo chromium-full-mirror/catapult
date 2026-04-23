@@ -256,14 +256,17 @@ def QueryAnomaliesByTimePostHandler():
     response = AnomalyResponse()
     for found_anomaly in anomalies:
       anomaly_data = GetAnomalyData(found_anomaly)
+      # Fuchsia and Chromium share the same revision space but have distinct
+      # property schemas. We need to filter by test_path to ensure we pull the
+      # correct row for Fuchsia revisions and avoid HTTP 500 errors.
       if client_email in utils.FUCHSIA_CLIENTS:
         internal = client_email in utils.INTERNAL_CLIENTS
         start_commit_row = client.GetFirstRowForRevision(
-          anomaly_data.start_revision)
+            anomaly_data.start_revision, anomaly_data.test_path)
         anomaly_data.start_revision_hash = utils.GetFuchsiaCommitId(
           start_commit_row, internal)
         end_commit_row = client.GetFirstRowForRevision(
-          anomaly_data.end_revision)
+            anomaly_data.end_revision, anomaly_data.test_path)
         anomaly_data.end_revision_hash = utils.GetFuchsiaCommitId(
           end_commit_row, internal)
 

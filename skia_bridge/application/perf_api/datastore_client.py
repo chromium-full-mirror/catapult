@@ -124,10 +124,32 @@ class DataStoreClient:
 
     return filtered_results
 
-  def GetFirstRowForRevision(self, revision_number:int):
+  def _create_legacy_test_key(self, test_path: str):
+    """Converts a flat test_path into the legacy hierarchical Datastore Key."""
+    parts = test_path.split('/')
+    if len(parts) < 3:
+      return None
+
+    path_elements = ['Master', parts[0], 'Bot', parts[1]]
+    for i in range(2, len(parts)):
+      path_elements.extend(['Test', parts[i]])
+
+    return self._client.key(*path_elements)
+
+  def GetFirstRowForRevision(self, revision_number: int, test_path: str = None):
+    """Fetches the closest row for a specific test at or before the given revision."""
     query = self._client.query(kind='Row', order=['-revision'])
+
+    if test_path:
+      legacy_key = self._create_legacy_test_key(test_path)
+      if legacy_key:
+        query.add_filter('parent_test', '=', legacy_key)
+
     query.add_filter('revision', '<=', revision_number)
+
     results = list(query.fetch(limit=1))
+    if not results:
+      return {}
     return results[0]
 
   def GetEntity(self, entity_type:EntityType, entity_id):
