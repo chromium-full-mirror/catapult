@@ -34,13 +34,18 @@ _GERRIT_CL_RE = re.compile(r'^patch/gerrit/([^/]+)/(\d+)/(\d+)$')
 _BUCKET_RE = re.compile(r'luci\.([^.]+)\.([^.]+)')
 
 
-def Put(bucket, tags, parameters):
-  logging.info("bbv2 tags: \n%s\n", tags)
-  bucket_parts = _BUCKET_RE.split(bucket)
+def _ParseBucket(bucket_str):
+  bucket_parts = _BUCKET_RE.split(bucket_str)
   if len(bucket_parts) != 4:
-    raise ValueError('Could not parse bucket value: %s' % bucket)
+    raise ValueError('Could not parse bucket value: %s' % bucket_str)
   project = bucket_parts[1]
   bucket = bucket_parts[2]
+  return project, bucket
+
+
+def Put(bucket, tags, parameters):
+  logging.info("bbv2 tags: \n%s\n", tags)
+  project, bucket = _ParseBucket(bucket)
   request_tags, gerrit_changes, gitiles_commit = [], [], None
   for tag_kvp in [tag.split(':') for tag in tags]:
     if tag_kvp[0] == 'buildset':
@@ -93,9 +98,16 @@ def GetJobStatus(job_id):
   return request.RequestJson(
       API_BASE_URL2 + 'GetBuild', method='POST', body=body)
 
-def GetBuilds(project: str, bucket: str, builder: str):
+
+def GetExistingBuilds(bucket_str: str, builder: str, status: str):
+  project, bucket = _ParseBucket(bucket_str=bucket_str)
+  return GetBuilds(
+      project=project, bucket=bucket, builder=builder, status=status)
+
+
+def GetBuilds(project: str, bucket: str, builder: str, status: str = 'SUCCESS'):
   builder = {'project': project, 'bucket': bucket, 'builder': builder}
-  predicate = {'builder': builder, 'status': 'SUCCESS'}
+  predicate = {'builder': builder, 'status': status}
   body = {'predicate': predicate}
   return request.RequestJson(
     API_BASE_URL2 + 'SearchBuilds', method='POST', body=body)

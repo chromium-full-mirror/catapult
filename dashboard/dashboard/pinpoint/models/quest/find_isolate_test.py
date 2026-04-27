@@ -181,18 +181,22 @@ class IsolateLookupTest(_FindIsolateExecutionTest):
     self.assertEqual(execution.result_arguments, expected_result_arguments)
     self.assertEqual(execution.AsDict(), expected_as_dict)
 
-
-  def testIsolateLookupFallbackSuccess(self):
+  def testIsolateLookupTargetFallbackSuccess(self):
     quest = find_isolate.FindIsolate(
         'Mac Builder',
-        'not_real_target',
+        'telemetry_perf_tests',
         'luci.bucket',
-        fallback_target='telemetry_perf_tests')
+        fallback_target='telemetry_perf_tests_fallback')
 
     # Propagate a thing that looks like a job.
     quest.PropagateJob(
         FakeJob('cafef00d', 'https://pinpoint/cafef00d', 'performance',
                 'user@example.com', {}))
+
+    # Add the fallback isolate.
+    change = change_test.Change(123)
+    isolate.Put((('Mac Builder', change, 'telemetry_perf_tests_fallback',
+                  'isolate.server', '7c7e90be_fallback'),))
 
     execution = quest.Start(change_test.Change(123))
     execution.Poll()
@@ -201,70 +205,37 @@ class IsolateLookupTest(_FindIsolateExecutionTest):
         'isolate_server': 'isolate.server',
         'isolate_hash': '7c7e90be',
     }
-    expected_url = 'https://cas-viewer.appspot.com/{}/blobs/{}/tree'.format(
-        'isolate.server', '7c7e90be')
-    expected_as_dict = {
-        'completed':
-            True,
-        'exception':
-            None,
-        'details': [
-            {
-                'key': 'builder',
-                'value': 'Mac Builder',
-            },
-            {
-                'key': 'isolate',
-                'value': '7c7e90be',
-                'url': expected_url,
-            },
-        ],
-    }
     self.assertExecutionSuccess(execution)
-    self.assertEqual(execution.result_values, ())
     self.assertEqual(execution.result_arguments, expected_result_arguments)
-    self.assertEqual(execution.AsDict(), expected_as_dict)
 
-  def testIsolateLookupFailure(self):
-    quest = find_isolate.FindIsolate(
-        'Mac Builder',
-        'not_real_target',
-        'luci.bucket',
-        fallback_target='also_not_real_target')
+  def testIsolateLookupNoIsolate(self):
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change_test.Change(0))
 
-    # Propagate a thing that looks like a job.
-    quest.PropagateJob(
-        FakeJob('cafef00d', 'https://pinpoint/cafef00d', 'performance',
-                'user@example.com', {}))
-
-    execution = quest.Start(change_test.Change(123))
-    execution._build = True
     with mock.patch(
-        'dashboard.services.buildbucket_service.GetJobStatus',
-        return_value={
-            'build': {
-                'url':
-                    'foo',
-                'status':
-                    'COMPLETED',
-                'result':
-                    '',
-                'result_details_json':
-                    """{
-                         "properties": {
-                           "got_revision_cp": "",
-                           "swarm_hashes__without_patch": {}
-                         }
-                       }""",
-            }
-        }):
-      with self.assertRaises(errors.BuildIsolateNotFound):
+        'dashboard.services.buildbucket_service.GetExistingBuilds',
+        return_value={'builds': []}):
+      with mock.patch(
+          'dashboard.services.buildbucket_service.Put',
+          return_value={'id': 'build_id'}):
         execution.Poll()
+
+    self.assertFalse(execution.completed)
 
 
 @mock.patch('dashboard.services.buildbucket_service.GetJobStatus')
 @mock.patch('dashboard.services.buildbucket_service.Put')
 class BuildTest(_FindIsolateExecutionTest):
+
+  def setUp(self):
+    super().setUp()
+    mock.patch(
+        'dashboard.services.buildbucket_service.GetExistingBuilds',
+        return_value={
+            'builds': []
+        }).start()
+    self.addCleanup(mock.patch.stopall)
 
   def FakePutReturn(self):
     return {'id': 'build_id_2'}
@@ -322,7 +293,6 @@ class BuildTest(_FindIsolateExecutionTest):
                 'patch_storage': 'gerrit',
             }
         })
-
 
   def testBuildLifecycle(self, put, get_job_status):
     change = change_test.Change(123, 456, patch=True)
@@ -420,7 +390,6 @@ class BuildTest(_FindIsolateExecutionTest):
     self.assertEqual(execution.result_arguments, expected_result_arguments)
     self.assertEqual(execution.AsDict(), expected_as_dict)
 
-
   def testSimultaneousBuilds(self, put, get_job_status):
     # Two builds started at the same time on the same Change should reuse the
     # same build request.
@@ -457,7 +426,6 @@ class BuildTest(_FindIsolateExecutionTest):
 
     self.assertExecutionSuccess(execution_1)
     self.assertExecutionSuccess(execution_2)
-
 
   def testBuildFailure(self, put, get_job_status):
     quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
@@ -575,3 +543,198 @@ class BuildTest(_FindIsolateExecutionTest):
                                  change_test.Change(123, 456, patch=True),
                                  'telemetry_perf_tests')
     self.assertIsNotNone(cached_isolate)
+
+  def testBuildReused(self, put, get_job_status):
+    # If a matching build already exists in Buildbucket, we should reuse it.
+    change = change_test.Change(
+        888, patch=True)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    # Mock GetExistingBuilds to return a build that matches our change exactly.
+    # The IDs 567890 and 5 match the global Gerrit mock in pinpoint/test.py.
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_888'
+                  },
+                  'gerritChanges': [{
+                      'host': 'codereview.com',
+                      'change': '567890',
+                      'patchset': '5'
+                  }]
+              }
+          }]
+      }
+
+      execution.Poll()
+
+      # Verify that Put was NEVER called (we didn't request a new build).
+      self.assertEqual(put.call_count, 0)
+      # Verify that the execution is now tracking the existing build.
+      self.assertEqual(execution._build, 'existing_build_id')
+
+      # Next Poll should check the status of the reused build.
+      get_job_status.return_value = {'status': 'STARTED'}
+      execution.Poll()
+      get_job_status.assert_called_once_with('existing_build_id')
+
+  def testBuildReused_NoPatch(self, put, _):
+    # If no patch is present, we should reuse a build that also has no patch.
+    change = change_test.Change(888)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_888'
+                  },
+                  # No gerritChanges
+              }
+          }]
+      }
+      execution.Poll()
+
+    self.assertEqual(put.call_count, 0)
+    self.assertEqual(execution._build, 'existing_build_id')
+
+  def testBuildNotReused_PatchMismatch(self, put, _):
+    # Job has a patch, but Buildbucket has a different patchset.
+    change = change_test.Change(
+        888, patch=True)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_888'
+                  },
+                  'gerritChanges': [{
+                      'host': 'codereview.com',
+                      'change': '567890',
+                      'patchset': '1'  # Different patchset
+                  }]
+              }
+          }]
+      }
+
+      put.return_value = self.FakePutReturn()
+      execution.Poll()
+
+    # Verify that Put WAS called because the patchset didn't match.
+    self.assertEqual(put.call_count, 1)
+    self.assertEqual(execution._build, 'build_id_2')
+
+  def testBuildNotReused_BaseMismatch(self, put, _):
+    # Base commit hash does not match.
+    change = change_test.Change(888)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_999'
+                  },  # Different base
+              }
+          }]
+      }
+      put.return_value = self.FakePutReturn()
+      execution.Poll()
+
+    self.assertEqual(put.call_count, 1)
+    self.assertEqual(execution._build, 'build_id_2')
+
+  def testBuildNotReused_MultipleGerritChanges(self, put, _):
+    # Build has multiple patches applied.
+    change = change_test.Change(
+        888, patch=True)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_888'
+                  },
+                  'gerritChanges': [{
+                      'host': 'h1',
+                      'change': 'c1',
+                      'patchset': '1'
+                  }, {
+                      'host': 'h2',
+                      'change': 'c2',
+                      'patchset': '2'
+                  }]
+              }
+          }]
+      }
+      put.return_value = self.FakePutReturn()
+      execution.Poll()
+
+    self.assertEqual(put.call_count, 1)
+    self.assertEqual(execution._build, 'build_id_2')
+
+  def testBuildNotReused_MalformedBuildsetTag(self, put, _):
+    # The Gerrit patch metadata is malformed (too few parts).
+    change = change_test.Change(
+        888, patch=True)  # commit_888 is NOT in isolate cache
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    # Mock BuildsetTags to return something malformed
+    with mock.patch(
+        'dashboard.pinpoint.models.change.patch.GerritPatch.BuildsetTags'
+    ) as mock_tags:
+      mock_tags.return_value = 'too/few/parts'
+
+      with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                     ) as get_existing:
+        get_existing.return_value = {
+            'builds': [{
+                'id': 'existing_build_id',
+                'input': {
+                    'gitilesCommit': {
+                        'id': 'commit_888'
+                    },
+                    'gerritChanges': [{
+                        'host': 'h',
+                        'change': 'c',
+                        'patchset': 'p'
+                    }]
+                }
+            }]
+        }
+        put.return_value = self.FakePutReturn()
+        execution.Poll()
+
+    self.assertEqual(put.call_count, 1)
+    self.assertEqual(execution._build, 'build_id_2')

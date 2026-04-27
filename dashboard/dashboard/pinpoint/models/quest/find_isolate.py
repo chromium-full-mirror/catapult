@@ -293,6 +293,90 @@ class _FindIsolateExecution(execution.Execution):
     if not hasattr(self, '_build_tags'):
       self._build_tags = collections.OrderedDict()
 
+  # Note: There is a race condition where two pinpoint jobs might trigger
+  # a build for the exact same change simultaneously. If both reach this
+  # point before either build is actually registered in Buildbucket, they
+  # will both schedule new builds. This is a known limitation.
+  def _FindExistingBuilds(self):
+    # try to find an existing build, scheduled or started, triggered by
+    # the other jobs.
+    scheduled_builds = buildbucket_service.GetExistingBuilds(
+        bucket_str=self.bucket, builder=self._builder_name, status='SCHEDULED')
+    started_builds = buildbucket_service.GetExistingBuilds(
+        bucket_str=self.bucket, builder=self._builder_name, status='STARTED')
+
+    scheduled_build_list = scheduled_builds.get('builds',
+                                                []) if scheduled_builds else []
+    started_build_list = started_builds.get('builds',
+                                            []) if started_builds else []
+    all_builds = scheduled_build_list + started_build_list
+
+    for build in all_builds:
+      # For each existing build:
+      # 1. if the build has the same base as the current job and neither
+      #    has patch, return as matched.
+      # 2. if the build has the same base and it has a patch, we need to
+      #    retrieve the patchset id of the current job and compare it
+      #    with the build info
+      logging.debug('Checking build id: %s', build.get('id'))
+      build_input = build.get('input', {})
+      gitiles_commit = build_input.get('gitilesCommit', {})
+      logging.debug('Checking build id (%s) with gitiles_commit: %s',
+                    build.get('id'), gitiles_commit)
+
+      if gitiles_commit.get('id') != self._change.base_commit.git_hash:
+        continue
+
+      gerrit_changes = build_input.get('gerritChanges', [])
+
+      if not self._change.patch:
+        if not gerrit_changes:
+          # Base matched without patches.
+          logging.debug('Build %s: matched on %s (no patch)', build.get('id'),
+                        gitiles_commit.get('id'))
+          return build.get('id')
+        continue
+
+      if not gerrit_changes:
+        # the job has patch but the build does not.
+        continue
+
+      if len(gerrit_changes) != 1:
+        # The build has multiple patches, which might alter the result.
+        logging.debug(
+            'Buildbucket build has multiple Gerrit patches. Skipping.')
+        continue
+
+      # calling BuildsetTags() will incur an extra call to Gerrit
+      # service. Considering it only happens when the base matches
+      # and on requesting build, the impact should be acceptable.
+      buildset_tags = self._change.patch.BuildsetTags()
+      logging.debug('Building buildset tag: %s', buildset_tags)
+      parts = buildset_tags.split('/')
+      # expecting a pattern like:
+      # buildset:patch/gerrit/chromium-review.googlesource.com/7758046/1
+      if len(parts) < 5:
+        continue
+
+      host = parts[2]
+      change_num = parts[3]
+      patchset_num = parts[4]
+
+      gerrit_change = gerrit_changes[0]
+      logging.debug(
+          'Comparing patchset: host=%s, change=%s, patchset=%s vs build gerrit_change=%s',
+          host, change_num, patchset_num, gerrit_change)
+
+      if (str(gerrit_change.get('host')) == host
+          and str(gerrit_change.get('change')) == change_num
+          and str(gerrit_change.get('patchset')) == patchset_num):
+        logging.debug('Build %s matched on %s (with patch %s)', build.get('id'),
+                      gitiles_commit.get('id'), patchset_num)
+        return build.get('id')
+
+    return None
+
+
   def _RequestBuild(self):
     """Requests a build.
 
@@ -306,6 +390,13 @@ class _FindIsolateExecution(execution.Execution):
       # If another Execution already requested a build, reuse that one.
       self._build = self._previous_builds[self._change]
     else:
+      existing_build = self._FindExistingBuilds()
+      if existing_build:
+        self._build = existing_build
+        self._previous_builds[self._change] = self._build
+        logging.debug('Found ongoing build and will wait for it: %s',
+                      existing_build)
+        return
       logging.debug('Requesting a build')
       # Request a build!
       buildbucket_info = RequestBuild(self._builder_name, self._change,
