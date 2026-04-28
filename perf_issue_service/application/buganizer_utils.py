@@ -13,6 +13,7 @@ be reconciled to the Monorail format on perf_issue_service.
 """
 
 import logging
+import googleapiclient.errors
 
 from application.clients import monorail_client
 
@@ -451,17 +452,21 @@ def FindBuganizerIdByMonorailId(monorail_project, monorail_id):
     # been migrated.
     # In this case, we should find the buganizer id first.
 
-    client = monorail_client.MonorailClient()
-    issue = client.GetIssue(
-      issue_id=monorail_id,
-      project=monorail_project)
-    buganizer_id = issue.get('migrated_id', None)
-    logging.debug('Migrated ID %s found for %s/%s.',
-                  buganizer_id, monorail_project, monorail_id)
-    if not buganizer_id:
-      err_msg = 'Cannot find the migrated id for crbug %s in %s' % (
-        monorail_id, monorail_project)
-      logging.error(err_msg)
+    try:
+      client = monorail_client.MonorailClient()
+      issue = client.GetIssue(
+        issue_id=monorail_id,
+        project=monorail_project)
+      buganizer_id = issue.get('migrated_id')
+      if buganizer_id:
+        logging.debug('Migrated ID %s found for %s/%s.',
+                      buganizer_id, monorail_project, monorail_id)
+      else:
+        logging.error('Cannot find the migrated id for crbug %s in %s',
+                      monorail_id, monorail_project)
+    except googleapiclient.errors.Error as e:
+      logging.warning('Failed to retrieve migrated_id from Monorail API (it may be deprecated): %s', e)
+      buganizer_id = None
     return buganizer_id
   return monorail_id
 
