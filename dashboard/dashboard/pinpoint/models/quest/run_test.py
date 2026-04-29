@@ -29,6 +29,10 @@ _CAS_DEFAULT_INSTANCE = (
 )
 _SWARMING_EXECUTION_TIMEOUT = 2700  # 60 * 45 minutes
 _CQ_SWARMING_EXECUTION_TIMEOUT = 600  # 60 * 10 minutes
+# Some benchmarks need longer timeouts.
+_BENCHMARK_TIMEOUTS = {
+    'embedder.crossbench': 5400,  # 1.5 hours
+}
 
 
 def SwarmingTagsFromJob(job):
@@ -45,7 +49,7 @@ def SwarmingTagsFromJob(job):
 
   if job.tags is not None and job.tags.get('origin') == 'CQ':
     ret['perf_on_cq'] = True
-    ret['pinpoint_configuration'] = job.configuration
+  ret['pinpoint_configuration'] = job.configuration
 
   return ret
 
@@ -145,6 +149,10 @@ class RunTest(quest.Quest):
     if 'perf_on_cq' in swarming_tags:
       # kill swarming task from Perf On CQ earlier.
       execution_timeout_secs = _CQ_SWARMING_EXECUTION_TIMEOUT
+    else:
+      benchmark = swarming_tags.get('benchmark')
+      if benchmark in _BENCHMARK_TIMEOUTS:
+        execution_timeout_secs = _BENCHMARK_TIMEOUTS['benchmark']
 
     test_execution = _RunTestExecution(
         self,

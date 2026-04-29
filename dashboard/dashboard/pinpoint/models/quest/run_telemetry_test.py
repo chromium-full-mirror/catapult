@@ -6,9 +6,11 @@ from __future__ import print_function
 from __future__ import division
 from __future__ import absolute_import
 
+import logging
 import re
 
 from dashboard.pinpoint.models.quest import run_performance_test
+from dashboard.services import crrev_service
 
 _DEFAULT_EXTRA_ARGS = [
     '-v', '--upload-results', '--output-format', 'histograms'
@@ -102,10 +104,37 @@ _CROSSBENCH_NAME = {
     'devtools_frontend.crossbench': 'devtools_frontend',
 }
 
+# These hardcoded args are only used while running benchmarks before commit
+# position 1614510. Newer versions of run_performance_tests.py read the args
+# from shard map.
+# pylint: disable=line-too-long
 _CROSSBENCH_EXTRA_ARGS = {
+    'embedder.crossbench': (
+        '--wpr=crossbench_android_embedder_000.wprgo',
+        '--skip-wpr-script-injection',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/cipd/arm64/Velvet_arm64.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/embedder_cuj_config.hjson',
+        '--probe-config=../../clank/android_webview/tools/crossbench_config/agsa_probe_config.hjson',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--http-request-timeout=2s',
+        '--ignore-partial-failures',
+        '--embedder-process-name=googleapp',
+        '--embedder-setup-command-config=../../clank/android_webview/tools/crossbench_config/agsa_setup_config.hjson',
+        '--embedder-drop-caches',
+    ),
+    'loading.crossbench': (
+        '--wpr=crossbench_android_loading_000.wprgo',
+        '--probe=chrome_histograms:{"baseline":false,"metrics":{"Android.WebView.Startup.CreationTime.StartChromiumLocked":["mean"],"Android.WebView.Startup.CreationTime.Stage1.FactoryInit":["mean"],"PageLoad.PaintTiming.NavigationToFirstContentfulPaint":["mean"]}}',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--stories=cnn',
+    ),
     'speedometer3.a11y.crossbench':
         ('--extra-browser-args=--force-renderer-accessibility',),
 }
+# pylint: enable=line-too-long
 
 
 def _StoryToRegex(story_name):
@@ -117,13 +146,46 @@ def _StoryToRegex(story_name):
   return '^%s$' % _STORY_REGEX.sub('.', story_name)
 
 
-def ChangeDependentArgs(args, change):
+def ChangeDependentArgs(args, change, configuration=None, benchmark=None):
   # For results2 to differentiate between runs, we need to add the
   # Telemetry parameter `--results-label <change>` to the runs.
   extra_args = list(args)
   extra_args += ('--results-label', str(change))
   if change.change_args:
     extra_args.extend(change.change_args)
+
+  cl_number = 0
+  if change.commits:
+    commit0 = change.commits[0]
+    if commit0.repository == 'chromium':
+      logging.info('crbug/497884158 using chromium commit %s', commit0.git_hash)
+      commit_info = crrev_service.GetCommit(commit0.git_hash)
+      logging.info('crbug/497884158 commit info %s', commit_info)
+      cl_number = int(commit_info.get('number', '0'))
+    else:
+      logging.warning(
+          'crbug/497884158 main repo for change %s is %s instead of chromium',
+          change, commit0.repository)
+  else:
+    logging.warning('crbug/497884158 change %s has no associated commits',
+                    change)
+
+  if cl_number:
+    logging.info('crbug/497884158 change %s has CL number: %d', change,
+                 cl_number)
+  else:
+    logging.warning(
+        'crbug/497884158 Unable to determin CL number for change %s', change)
+
+  if cl_number >= 1614510 and configuration:
+    # On newer builds, pass in the bot config name so the test runner can load
+    # extra arguments from the shard map.
+    extra_args.append(f'--bot={configuration}')
+  elif benchmark in _CROSSBENCH_EXTRA_ARGS:
+    # On older builds, the test runner didn't know how to read the shard map,
+    # so we have to give it the hardcoded extra arguments.
+    extra_args += _CROSSBENCH_EXTRA_ARGS[benchmark]
+
   return extra_args
 
 
@@ -165,7 +227,9 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
         change,
         isolate_server,
         isolate_hash,
-        ChangeDependentArgs(self._extra_args, change),
+        ChangeDependentArgs(self._extra_args, change,
+                            self._swarming_tags.get('pinpoint_configuration'),
+                            self._swarming_tags.get('benchmark')),
         extra_swarming_tags,
         execution_timeout_secs=None)
 
@@ -181,7 +245,6 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
     extra_test_args.append(f'--browser={browser}')
 
     extra_test_args += super()._ExtraTestArgs(arguments)
-    extra_test_args += _CROSSBENCH_EXTRA_ARGS.get(benchmark, ())
     return extra_test_args
 
   @classmethod

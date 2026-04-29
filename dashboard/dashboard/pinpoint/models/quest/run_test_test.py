@@ -35,8 +35,8 @@ _BASE_SWARMING_TAGS = {}
 
 FakeJob = collections.namedtuple('Job', [
     'job_id', 'url', 'comparison_mode', 'user', 'state', 'bots', 'batch_id',
-    'tags'
-])
+    'tags', 'configuration',
+], defaults=('linux-perf',))
 State = collections.namedtuple('State', ['attempt_count'])
 
 
