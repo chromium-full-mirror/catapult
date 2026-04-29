@@ -738,3 +738,32 @@ class BuildTest(_FindIsolateExecutionTest):
 
     self.assertEqual(put.call_count, 1)
     self.assertEqual(execution._build, 'build_id_2')
+
+  def testBuildNotReused_DepsPresent(self, put, _):
+    # Change has dependency overrides (drilldown), so we should skip reuse.
+    change = change_test.Change(888, catapult=456)  # Includes catapult override
+    quest = find_isolate.FindIsolate('Mac Builder', 'telemetry_perf_tests',
+                                     'luci.bucket')
+    execution = quest.Start(change)
+
+    # Even if a build exists that matches the base commit, it should be ignored.
+    with mock.patch('dashboard.services.buildbucket_service.GetExistingBuilds'
+                   ) as get_existing:
+      get_existing.return_value = {
+          'builds': [{
+              'id': 'existing_build_id',
+              'input': {
+                  'gitilesCommit': {
+                      'id': 'commit_888'
+                  },
+              }
+          }]
+      }
+      put.return_value = self.FakePutReturn()
+      execution.Poll()
+
+    # Verify that Put WAS called because we skipped the reuse logic due to deps.
+    self.assertEqual(put.call_count, 1)
+    self.assertEqual(execution._build, 'build_id_2')
+    # verify that we didn't even call GetExistingBuilds
+    self.assertEqual(get_existing.call_count, 0)

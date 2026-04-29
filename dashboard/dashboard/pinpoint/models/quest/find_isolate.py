@@ -298,6 +298,11 @@ class _FindIsolateExecution(execution.Execution):
   # point before either build is actually registered in Buildbucket, they
   # will both schedule new builds. This is a known limitation.
   def _FindExistingBuilds(self):
+    # Do not handle drilldown for now. (E.g., bisect on V8 commits in a
+    # roller CL)
+    if self._change.deps:
+      logging.debug('Build sharing is not implemented for bisection drilldown.')
+      return None
     # try to find an existing build, scheduled or started, triggered by
     # the other jobs.
     scheduled_builds = buildbucket_service.GetExistingBuilds(
