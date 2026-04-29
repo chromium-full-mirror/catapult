@@ -76,5 +76,8 @@ luci.builder(
 luci.cq_tryjob_verifier(
     builder = "webpagereplay-linux-tests",
     cq_group = "webpagereplay",
+    # Disable reuse is important here because there are steps that
+    # run in CQ+1 but not CQ+2 (namely, the one that verifies the user
+    # has run the script to upload binaries to the cloud).
     disable_reuse = True,
 )
