@@ -50,34 +50,3 @@ luci.cq_tryjob_verifier(
     cq_group = "webpagereplay",
     disable_reuse = True,
 )
-
-luci.builder(
-    name = "webpagereplay-linux-tests",
-    bucket = "try",
-    executable = luci.recipe(
-        name = "webpagereplay",
-        cipd_package = "infra/recipe_bundles/chromium.googlesource.com/chromium/tools/build",
-        use_bbagent = True,
-    ),
-    build_numbers = True,
-    dimensions = {
-        "pool": "luci.flex.try",
-        "os": "Ubuntu-24.04",
-        "cpu": "x86-64",
-    },
-    execution_timeout = 2 * time.hour,
-    service_account = "catapult-try-builder@chops-service-accounts.iam.gserviceaccount.com",
-    properties = {
-        "$kitchen": {"devshell": True, "git_auth": True},
-        "repo_name": "webpagereplay",
-    },
-)
-
-luci.cq_tryjob_verifier(
-    builder = "webpagereplay-linux-tests",
-    cq_group = "webpagereplay",
-    # Disable reuse is important here because there are steps that
-    # run in CQ+1 but not CQ+2 (namely, the one that verifies the user
-    # has run the script to upload binaries to the cloud).
-    disable_reuse = True,
-)
