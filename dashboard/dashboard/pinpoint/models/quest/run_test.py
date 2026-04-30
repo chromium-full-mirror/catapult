@@ -151,8 +151,8 @@ class RunTest(quest.Quest):
       execution_timeout_secs = _CQ_SWARMING_EXECUTION_TIMEOUT
     else:
       benchmark = swarming_tags.get('benchmark')
-      if benchmark in _BENCHMARK_TIMEOUTS:
-        execution_timeout_secs = _BENCHMARK_TIMEOUTS['benchmark']
+      execution_timeout_secs = _BENCHMARK_TIMEOUTS.get(benchmark,
+                                                       execution_timeout_secs)
 
     test_execution = _RunTestExecution(
         self,
