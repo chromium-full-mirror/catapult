@@ -1,0 +1,3 @@
+# Anyone with ownership over the *.star files should be able to touch
+# the corresponding generated files.
+*
