@@ -149,24 +149,6 @@ class ReplayServer():
           'wpr_go', py_utils.GetHostOsName(), py_utils.GetHostArchName())
     return ReplayServer._go_binary_path
 
-  @classmethod
-  def SetGoBinaryPath(cls, go_binary_path):
-    """Overrides the _go_binary_path.
-
-    This allows the server to use WPRGO files retrieved from somewhere
-    other than GCS via binary_manager, such as test isolation.
-
-    For chromium project to use WPR, it is encourage to use test isolation,
-    and therefore should call SetGoBinaryPath to set _go_binary_path.
-
-    For Catapult/Telemetry project, the tradition is to download wpr_go
-    binary via binary_manager. So do not call SetGoBinaryPath.
-    """
-    if not os.path.exists(go_binary_path):
-      raise ValueError('SetGoBinaryPath could not set {} as it does not exist'
-                       .format(go_binary_path))
-    cls._go_binary_path = go_binary_path
-
   @property
   def http_port(self):
     return self._started_ports['http']
