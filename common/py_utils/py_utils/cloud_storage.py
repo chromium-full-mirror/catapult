@@ -49,6 +49,16 @@ BUCKET_ALIAS_NAMES = list(BUCKET_ALIASES.keys())
 _GSUTIL_PATH = os.path.join(py_utils.GetCatapultDir(), 'third_party', 'gsutil',
                             'gsutil')
 
+# The gsutil vendored in catapult is unable to authenticate downloads on
+# user machines due to
+# https://docs.cloud.google.com/storage/docs/gsutil-transition-to-gcloud.
+# The version of gsutil.py in depot_tools has fixes to overcome these issues.
+# Long-term, this should probably switch to using gcloud SDK.
+_gsutil_from_path = shutil.which('gsutil.py')
+if (_gsutil_from_path
+    and os.path.basename(os.path.dirname(_gsutil_from_path)) == 'depot_tools'):
+  _GSUTIL_PATH = _gsutil_from_path
+
 # TODO(tbarzic): A workaround for http://crbug.com/386416 and
 #     http://crbug.com/359293. See |_RunCommand|.
 _CROS_GSUTIL_HOME_WAR = '/home/chromeos-test/'
