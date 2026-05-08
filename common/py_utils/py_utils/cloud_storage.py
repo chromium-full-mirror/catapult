@@ -57,6 +57,12 @@ _GSUTIL_PATH = os.path.join(py_utils.GetCatapultDir(), 'third_party', 'gsutil',
 _gsutil_from_path = shutil.which('gsutil.py')
 if (_gsutil_from_path
     and os.path.basename(os.path.dirname(_gsutil_from_path)) == 'depot_tools'):
+  # shutil.which() will return a matching .bat file if one exists. But we pass
+  # our gsutil straight to python. So chop off the .bat ext.
+  if _gsutil_from_path.lower().endswith('.bat'):
+    _gsutil_py = _gsutil_from_path[:-4]
+    if os.path.exists(_gsutil_py):
+      _gsutil_from_path = _gsutil_py
   _GSUTIL_PATH = _gsutil_from_path
 
 # TODO(tbarzic): A workaround for http://crbug.com/386416 and
