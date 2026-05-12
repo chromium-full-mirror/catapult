@@ -100,8 +100,10 @@ class DesktopBrowserBackend(chrome_browser_backend.ChromeBrowserBackend):
                    '        Ss   01:50   0:14 /sbin/init splash')
         assert re.search(REGEXP, EXAMPLE).group(1) == '12228'
         self.rss = re.search(REGEXP, s).group(1)
-    tmp = subprocess.getoutput('ps -aux | grep chrome')
-    return [Process(line) for line in tmp.split('\n') if '--type=' in line]
+    available_procs = (subprocess.getoutput('ps -aux | grep "%s"' %
+      os.path.basename(self._executable)))
+    return [Process(line) for line in available_procs.split('\n')
+            if '--type=' in line and self._executable in line]
 
   @property
   def supports_uploading_logs(self):

@@ -109,6 +109,8 @@ have an abridged version yet. Instructions for abridging a benchmark are
 
 `src/tools/perf/run_benchmark rendering.desktop --run-abridged-story-set`
 
+If you want to perform CPU profiling during the benchmark, see [CPU Profiling](cpu_profiling.md).
+
 If you want to re-generate HTML results and add label, you can do this locally
 by using the parameters `--reset-results --results-label="foo"`
 

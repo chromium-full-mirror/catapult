@@ -206,9 +206,10 @@ class BrowserIntervalProfilingControllerTest(unittest.TestCase):
     with self.assertRaises(ValueError) as context:
       profiling_mod.BrowserIntervalProfilingController(
           possible_browser, 'system_wide', ['period1'], 1, [])
-    self.assertTrue('Only profiling renderer main thread is supported on Linux.'
-                    ' Got process name \"system_wide\" and thread name \"\".'
-                    in repr(context.exception))
+    self.assertIn('Only profiling renderer', repr(context.exception))
+    self.assertIn('supported on Linux', repr(context.exception))
+    self.assertIn('Got process name \"system_wide\" and thread name \"\".',
+                  repr(context.exception))
 
   def testLinuxWithProfilerOptions(self):
     possible_browser = FakePossibleBrowser(FakeLinuxPlatformBackend())

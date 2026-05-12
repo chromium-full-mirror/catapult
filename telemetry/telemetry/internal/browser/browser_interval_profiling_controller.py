@@ -86,9 +86,10 @@ class _LinuxController(_PlatformController):
     if profiler_options:
       raise ValueError(
           'Additional arguments to the profiler is not supported on Linux.')
-    if process_name != 'renderer' or thread_name != 'main':
+    if (process_name not in ('renderer', 'gpu') or
+       (process_name == 'renderer' and thread_name != 'main')):
       raise ValueError(
-          'Only profiling renderer main thread is supported on Linux.'
+          'Only profiling renderer (main thread) or gpu is supported on Linux.'
           ' Got process name "%s" and thread name "%s".'
           % (process_name, thread_name))
     possible_browser.AddExtraBrowserArg('--no-sandbox')
@@ -103,26 +104,33 @@ class _LinuxController(_PlatformController):
     """Collects CPU profiles for the giving period."""
     browser = action_runner.tab.browser
 
+    logging.info('Searching for processes with name: %s' % self._process_name)
     processes = [p for p in browser._browser_backend.processes
                  if p.name == self._process_name]
+    logging.info('Found processes: %s' % [p.pid for p in processes])
 
     # The tests make 2 renderers, only one of which is the one we want to use
     # for profiling. We always get the heavier one here. If this breaks, change
     # this below.
     if self._process_name == 'renderer':
-      processes = [p for p in processes if p.name == 'renderer']
       # Sort by RSS, from smallest to biggest.
       processes.sort(key=lambda p: int(p.rss))
+
+    if not processes:
+      logging.warning('No processes found with name: %s' % self._process_name)
+      yield
+      return
 
     process = processes[-1]
     outfile = (self.DEVICE_OUT_FILE_PATTERN
           .format(period=period, pid=process.pid).replace(' ', ''))
-    tmp = ' '.join(self._perf_command + [
+    perf_cmd = self._perf_command + [
         '-g',
         '-e', 'cpu-clock',
-        '-p', process.pid,
-        '-o', outfile])
-    result = subprocess.Popen(tmp.split())
+        '-p', str(process.pid),
+        '-o', outfile]
+    logging.info('Running perf command: %s' % ' '.join(perf_cmd))
+    result = subprocess.Popen(perf_cmd)
     try:
       yield
     finally:

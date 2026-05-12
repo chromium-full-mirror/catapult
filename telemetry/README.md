@@ -141,6 +141,7 @@ sets.
     with Web Page Replay
 *   [Feature guidelines](https://sites.google.com/a/chromium.org/dev/developers/telemetry/telemetry-feature-guidelines)
 *   [Profile generation](https://sites.google.com/a/chromium.org/dev/developers/telemetry/telemetry-profile-generation)
+*   [CPU profiling](/telemetry/docs/cpu_profiling.md)
 *   [Telemetry unittests](/telemetry/docs/run_telemetry_tests.md)
 
 ## Frequently Asked Questions
