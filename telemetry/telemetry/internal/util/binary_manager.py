@@ -137,7 +137,7 @@ def LocalPath(binary_name, os_name, arch, os_version=None):
 
 
 def FetchBinaryDependencies(platform, client_configs,
-    fetch_reference_chrome_binary, dependency_filter=None):
+                            fetch_reference_chrome_binary):
   """ Fetch all binary dependencies for the given |platform|.
 
   Note: we don't fetch browser binaries by default because the size of the
@@ -149,8 +149,6 @@ def FetchBinaryDependencies(platform, client_configs,
     client_configs: A list of paths (string) to dependencies json files.
     fetch_reference_chrome_binary: whether to fetch reference chrome binary for
       the given platform.
-    dependency_filter: A list of dependency names to limit fetch to - if not
-      provided will fetch all dependencies for the given platform.
   """
   configs = [
       dependency_manager.BaseConfig(TELEMETRY_PROJECT_CONFIG),
@@ -164,14 +162,14 @@ def FetchBinaryDependencies(platform, client_configs,
   if _IsChromeOSLocalMode(os_name):
     os_name = 'linux'
   target_platform = '%s_%s' % (os_name, platform.GetArchName())
-  dep_manager.PrefetchPaths(target_platform, dependency_filter)
+  dep_manager.PrefetchPaths(target_platform)
 
   host_platform = None
   fetch_devil_deps = False
   if os_name in ('android', 'chromeos'):
     host_platform = '%s_%s' % (
         py_utils.GetHostOsName(), py_utils.GetHostArchName())
-    dep_manager.PrefetchPaths(host_platform, dependency_filter)
+    dep_manager.PrefetchPaths(host_platform)
     if os_name == 'android':
       if host_platform == 'linux_x86_64':
         fetch_devil_deps = True

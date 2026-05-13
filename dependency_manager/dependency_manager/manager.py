@@ -157,14 +157,11 @@ class DependencyManager():
       raise exceptions.NoPathFoundError(dependency, platform)
     return local_path
 
-  def PrefetchPaths(self, platform, dependencies=None, cloud_storage_retries=3):
-    if not dependencies:
-      dependencies = self._lookup_dict.keys()
-
+  def PrefetchPaths(self, platform, cloud_storage_retries=3):
     skipped_deps = []
     found_deps = []
     missing_deps = []
-    for dependency in dependencies:
+    for dependency in self._lookup_dict:
       dependency_info = self._GetDependencyInfo(dependency, platform)
       if not dependency_info:
         # The dependency is only configured for other platforms.

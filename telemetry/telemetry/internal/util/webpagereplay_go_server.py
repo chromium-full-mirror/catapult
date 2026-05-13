@@ -32,8 +32,6 @@ class ReplayServer():
        self.WaitUntil(...)
   """
 
-  _go_binary_path = None
-
   def __init__(self, archive_path, replay_host, http_port, https_port,
                replay_options):
     """Initialize ReplayServer.
@@ -50,8 +48,7 @@ class ReplayServer():
     if binary_manager.NeedsInit():
       binary_manager.InitDependencyManager(None)
     self._wpr_server = webpagereplay_go_server.ReplayServer(
-        archive_path, replay_host, http_port, https_port,
-        replay_options, binary_manager.FetchPath)
+        archive_path, replay_host, http_port, https_port, replay_options)
 
   @property
   def http_port(self):

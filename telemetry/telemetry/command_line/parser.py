@@ -101,9 +101,6 @@ def _ArgumentParsers(environment, args, results_arg_parser):
       'run', help='run a benchmark (default)',
       parents=[results_arg_parser] if results_arg_parser else [])
   subparser.set_defaults(**ext_defaults)
-  subparser.add_argument('--use-local-wpr', action='store_true',
-                         help='Builds and runs WPR from Catapult. '
-                         'Also enables WPR debug output to STDOUT.')
   subparser.add_argument('--disable-fuzzy-url-matching', action='store_true',
                          help='Requires WPR to exactly match URLs.')
   add_subparser(

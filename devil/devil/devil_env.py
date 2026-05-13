@@ -174,9 +174,8 @@ class _Environment(object):
       self.Initialize()
     return self._dm.LocalPath(dependency, GetPlatform(arch, device))
 
-  def PrefetchPaths(self, dependencies=None, arch=None, device=None):
-    return self._dm.PrefetchPaths(
-        GetPlatform(arch, device), dependencies=dependencies)
+  def PrefetchPaths(self, arch=None, device=None):
+    return self._dm.PrefetchPaths(GetPlatform(arch, device))
 
 
 def GetPlatform(arch=None, device=None):

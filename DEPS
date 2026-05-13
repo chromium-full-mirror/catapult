@@ -56,3 +56,8 @@ deps = {
   'third_party/webpagereplay':
     Var('chromium_git') + '/webpagereplay.git' + '@' + Var('webpagereplay_revision'),
 }
+
+recursedeps = [
+  # WebPageReplay pulls the go compiler via DEPS.
+  "third_party/webpagereplay",
+]

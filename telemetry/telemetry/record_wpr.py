@@ -15,7 +15,6 @@ from telemetry import story
 from telemetry.internal.browser import browser_options
 from telemetry.internal.results import results_options
 from telemetry.internal import story_runner
-from telemetry.internal.util import binary_manager
 from telemetry.page import legacy_page_test
 from telemetry.util import matching
 from telemetry.util import wpr_modes
@@ -203,10 +202,6 @@ class WprRecorder():
       self._benchmark.AddCommandLineArgs(self._parser)
       self._benchmark.SetArgumentDefaults(self._parser)
     self._parser.add_argument('--upload', action='store_true')
-    self._parser.add_argument('--use-local-wpr',
-                              action='store_true',
-                              help=('Builds and runs WPR from Catapult. Also '
-                                    'enables WPR debug output to STDOUT.'))
     self._SetArgumentDefaults()
 
   def _SetArgumentDefaults(self):
@@ -327,8 +322,6 @@ def Main(environment, **log_config_kwargs):
                      'usage below\n\n')
     parser.print_help()
     return 0
-
-  binary_manager.InitDependencyManager(environment.client_configs)
 
   # TODO(crbug.com/1111556): update WprRecorder so that it handles the
   # difference between recording a benchmark vs recording a story better based
