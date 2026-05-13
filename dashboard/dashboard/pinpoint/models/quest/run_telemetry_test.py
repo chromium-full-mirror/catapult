@@ -93,6 +93,7 @@ _CROSSBENCH_NAME = {
     # Loadline
     'loadline_phone.crossbench': 'loadline-phone-fast',
     'loadline2_phone.crossbench': 'loadline2-phone',
+    'loadline2_tablet.crossbench': 'loadline2-tablet',
     'loadline_tablet.crossbench': 'loadline-tablet-fast',
     # Embedder
     'embedder.crossbench': 'embedder',
