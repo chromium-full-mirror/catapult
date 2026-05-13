@@ -97,6 +97,7 @@ _CROSSBENCH_NAME = {
     'loadline_tablet.crossbench': 'loadline-tablet-fast',
     # Embedder
     'embedder.crossbench': 'embedder',
+    'gma.embedder.crossbench': 'embedder',
     # Loading
     'loading.crossbench': 'loading',
     # webai.crossbench
@@ -124,6 +125,26 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--embedder-process-name=googleapp',
         '--embedder-setup-command-config=../../clank/android_webview/tools/crossbench_config/agsa_setup_config.hjson',
         '--embedder-drop-caches',
+    ),
+    'gma.embedder.crossbench': (
+        '--wpr=crossbench_android_gma_embedder_000.wprgo',
+        '--wpr-http-port=8080',
+        '--wpr-https-port=8081',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/cipd/arm64/webview_test_app_binary.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/gma_interstitial_cuj_config.hjson',
+        '--skip-wpr-script-injection',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--embedder-setup-command-config=../../third_party/crossbench/config/team/woa/gma_device_setup.hjson',
+        '--embedder-teardown-command-config=../../third_party/crossbench/config/team/woa/gma_device_teardown.hjson',
+        '--probe-config=../../third_party/crossbench/config/team/woa/gma_wv_latency.probe.config.hjson',
+        '--ignore-partial-failures',
+        '--android-activity=MainActivity',
+        '--android-action=',
+        '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/hosts:/data/local/tmp/hosts',
+        '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/dnsmasq.conf:/data/local/tmp/dnsmasq.conf',
+        '--embedder-push-files=/b/swarming/w/ir/clank/android_webview/tools/crossbench_config/cipd/arm64/dummy_vpn.apk:/data/local/tmp/dummy_vpn.apk',
     ),
     'loading.crossbench': (
         '--wpr=crossbench_android_loading_000.wprgo',
