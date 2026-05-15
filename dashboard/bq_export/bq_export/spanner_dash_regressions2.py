@@ -82,6 +82,7 @@ class Regressions2Row(NamedTuple):
   bug_id: Optional[int]
   sub_name: Optional[str]
   trace_id: Optional[bytes]
+  legacy_key: Optional[str]
 
 
 coders.registry.register_coder(Regressions2Row, coders.RowCoder)
@@ -181,6 +182,7 @@ class Regressions2EntityToRowDoFn(beam.DoFn):
           sub_name_str = str(sub_names)
       sub_name_str = subNameMap(sub_name_str)
       bug_id = _SafeInt(entity.get('bug_id'))
+      legacy_key = str(getattr(getattr(entity, 'key', None), 'id', 'unknown'))
 
       cluster_type = getClusterType(entity)
       mapped_fields = {
@@ -208,13 +210,15 @@ class Regressions2EntityToRowDoFn(beam.DoFn):
               bug_id,
           'sub_name':
               sub_name_str,
+          'legacy_key':
+              legacy_key,
       }
 
       # Get unmapped fields for frame extras
       used_keys = {
           'timestamp', 'end_revision', 'start_revision',
           'median_before_anomaly', 'median_after_anomaly', 'is_improvement',
-          'state', 'bug_id', 'subscription_names', 'trace_id'
+          'state', 'bug_id', 'subscription_names', 'trace_id', 'legacy_key'
       }
       all_keys = set(entity.keys())
 
@@ -291,7 +295,6 @@ class Regressions2EntityToRowDoFn(beam.DoFn):
           "anomalymap": None,  # no idea why it should be here
           "display_mode": None,  # no clue what it is
           "extras": extras,
-          "legacy_key": getattr(getattr(entity, 'key', None), 'id', 'unknown'),
       }
       mapped_fields['frame'] = json.dumps(frame, default=_JsonFallback)
 
