@@ -50,3 +50,8 @@ luci.cq_tryjob_verifier(
     cq_group = "webpagereplay",
     disable_reuse = True,
 )
+
+luci.cq_tryjob_verifier(
+    builder = "Catapult Linux Tryserver",
+    cq_group = "webpagereplay",
+)
