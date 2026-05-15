@@ -990,26 +990,10 @@ found in the LICENSE file.
         if (benchmark.startsWith('xr')) {
           return 'vr_perf_tests';
         }
-        if (configuration === 'android-go-perf') {
+        if (configuration.startsWith('android-go')) {
           return 'performance_test_suite_android_trichrome_chrome_google_bundle';
-        } else if (configuration === 'android-go-perf-pgo') {
-          return 'performance_test_suite_android_trichrome_chrome_google_bundle';
-        } else if (configuration === 'android-go-wembley-perf') {
-          return 'performance_test_suite_android_trichrome_chrome_google_bundle';
-        } else if (configuration === 'android-pixel4-perf') {
+        } else if (configuration.startsWith('android-pixel')) {
           return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle';
-        } else if (configuration === 'android-pixel4-perf-pgo') {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle';
-        } else if (configuration.startsWith('android-pixel6')) {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle';
-        } else if (configuration.startsWith('android-pixel9')) {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle';
-        } else if (configuration === 'android-pixel-fold-perf') {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle'
-        } else if (configuration === 'android-pixel-tangor-perf') {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle'
-        } else if (configuration === 'android-pixel-tangor-perf-cbb') {
-          return 'performance_test_suite_android_trichrome_chrome_google_64_32_bundle'
         } else if (configuration.toLowerCase().includes('android')) {
           throw Error(
               'Given Android configuration ' + configuration + ' does not ' +
