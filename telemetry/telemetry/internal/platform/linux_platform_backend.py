@@ -39,6 +39,10 @@ def _GetOSVersion(value):
     return 0.0
 
 
+def _IsWayland():
+  return os.environ.get('XDG_SESSION_TYPE') == 'wayland'
+
+
 class LinuxPlatformBackend(
     posix_platform_backend.PosixPlatformBackend,
     linux_based_platform_backend.LinuxBasedPlatformBackend):
@@ -109,6 +113,13 @@ class LinuxPlatformBackend(
     raise NotImplementedError('Missing Linux OS name or version')
 
   def CanTakeScreenshot(self):
+    # Pillow technically supports capturing screenshots on Wayland but does
+    # so using utilities such as gnome-screenshot which are not guaranteed to
+    # exist or work on a given system. Even if these tools are available,
+    # Wayland's security model may make them unsuitable for automation due to
+    # asking for permission before allowing the screenshot.
+    if _IsWayland():
+      return False
     return True
 
   def TakeScreenshot(self, file_path):

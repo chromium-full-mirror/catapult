@@ -61,3 +61,11 @@ class LinuxPlatformBackendTest(unittest.TestCase):
         backend = linux_platform_backend.LinuxPlatformBackend()
         self.assertEqual(backend.GetOSVersionName(), 'fedora')
         mock_method.assert_called_once_with('/etc/os-release')
+
+  def testCanTakeScreenshot(self):
+    backend = linux_platform_backend.LinuxPlatformBackend()
+    with mock.patch.dict(os.environ, {}, clear=True):
+      self.assertTrue(backend.CanTakeScreenshot())
+    with mock.patch.dict(os.environ, {'XDG_SESSION_TYPE': 'wayland'},
+                         clear=True):
+      self.assertFalse(backend.CanTakeScreenshot())
