@@ -136,20 +136,34 @@ class DataStoreClient:
 
     return self._client.key(*path_elements)
 
-  def GetFirstRowForRevision(self, revision_number: int, test_path: str = None):
-    """Fetches the closest row for a specific test at or before the given revision."""
-    query = self._client.query(kind='Row', order=['-revision'])
+  def GetFirstRowForRevision(self,
+                             revision_number: int,
+                             test_path: str = None,
+                             target_key: str = None,
+                             post_revision: bool = False):
+    """Fetches closest row for a test at or before/after the revision."""
+    order = ['revision'] if post_revision else ['-revision']
+    query = self._client.query(kind='Row', order=order)
 
     if test_path:
       legacy_key = self._create_legacy_test_key(test_path)
       if legacy_key:
         query.add_filter('parent_test', '=', legacy_key)
 
-    query.add_filter('revision', '<=', revision_number)
+    op = '>=' if post_revision else '<='
+    query.add_filter('revision', op, revision_number)
 
-    results = list(query.fetch(limit=1))
+    limit = 10 if target_key else 1
+    results = list(query.fetch(limit=limit))
     if not results:
       return {}
+
+    if target_key:
+      for row in results:
+        if target_key in row and row[target_key]:
+          return row
+      return {}
+
     return results[0]
 
   def GetEntity(self, entity_type:EntityType, entity_id):

@@ -60,9 +60,10 @@ def TestPath(key: datastore.key.Key):
   return key.id_or_name
 
 def GetFuchsiaCommitId(row, internal):
-  if internal:
-    commit_key = 'r_fuchsia_integ_int_git'
-  else:
-    commit_key = 'r_fuchsia_integ_pub_git'
-
-  return row[commit_key]
+  if not row:
+    return ''
+  commit_key = (
+      'r_fuchsia_integ_int_git' if internal else 'r_fuchsia_integ_pub_git')
+  if commit_key not in row:
+    return ''
+  return row[commit_key] or ''

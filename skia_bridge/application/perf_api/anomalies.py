@@ -261,14 +261,23 @@ def QueryAnomaliesByTimePostHandler():
       # correct row for Fuchsia revisions and avoid HTTP 500 errors.
       if client_email in utils.FUCHSIA_CLIENTS:
         internal = client_email in utils.INTERNAL_CLIENTS
+        target_key = (
+            'r_fuchsia_integ_int_git'
+            if internal else 'r_fuchsia_integ_pub_git')
         start_commit_row = client.GetFirstRowForRevision(
-            anomaly_data.start_revision, anomaly_data.test_path)
+            anomaly_data.start_revision,
+            anomaly_data.test_path,
+            target_key=target_key,
+            post_revision=False)
         anomaly_data.start_revision_hash = utils.GetFuchsiaCommitId(
-          start_commit_row, internal)
+            start_commit_row, internal)
         end_commit_row = client.GetFirstRowForRevision(
-            anomaly_data.end_revision, anomaly_data.test_path)
+            anomaly_data.end_revision,
+            anomaly_data.test_path,
+            target_key=target_key,
+            post_revision=True)
         anomaly_data.end_revision_hash = utils.GetFuchsiaCommitId(
-          end_commit_row, internal)
+            end_commit_row, internal)
 
       response.AddAnomaly(anomaly_data.test_path, anomaly_data)
 

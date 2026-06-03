@@ -77,6 +77,57 @@ class DatastoreClientTest(unittest.TestCase):
     mock_query.fetch.assert_called_once_with(limit=1)
     self.assertEqual(row, {})
 
+  def test_GetFirstRowForRevision_with_target_key_post_revision_true(self):
+    mock_query = mock.MagicMock()
+    self.client._client.query.return_value = mock_query
+    mock_query.fetch.return_value = [
+        {'revision': 123},
+        {'revision': 124, 'r_fuchsia_integ_int_git': 'hash124'}
+    ]
+
+    row = self.client.GetFirstRowForRevision(
+        123, target_key='r_fuchsia_integ_int_git', post_revision=True)
+
+    self.client._client.query.assert_called_once_with(kind='Row',
+                                                      order=['revision'])
+    mock_query.add_filter.assert_called_once_with('revision', '>=', 123)
+    mock_query.fetch.assert_called_once_with(limit=10)
+    self.assertEqual(
+        row, {'revision': 124,
+              'r_fuchsia_integ_int_git': 'hash124'})
+
+  def test_GetFirstRowForRevision_with_target_key_post_revision_false(self):
+    mock_query = mock.MagicMock()
+    self.client._client.query.return_value = mock_query
+    mock_query.fetch.return_value = [
+        {'revision': 123},
+        {'revision': 122, 'r_fuchsia_integ_int_git': 'hash122'}
+    ]
+
+    row = self.client.GetFirstRowForRevision(
+        123, target_key='r_fuchsia_integ_int_git', post_revision=False)
+
+    self.client._client.query.assert_called_once_with(kind='Row',
+                                                      order=['-revision'])
+    mock_query.add_filter.assert_called_once_with('revision', '<=', 123)
+    mock_query.fetch.assert_called_once_with(limit=10)
+    self.assertEqual(
+        row, {'revision': 122,
+              'r_fuchsia_integ_int_git': 'hash122'})
+
+  def test_GetFirstRowForRevision_with_target_key_no_match(self):
+    mock_query = mock.MagicMock()
+    self.client._client.query.return_value = mock_query
+    mock_query.fetch.return_value = [
+        {'revision': 123},
+        {'revision': 122}
+    ]
+
+    row = self.client.GetFirstRowForRevision(
+        123, target_key='r_fuchsia_integ_int_git', post_revision=False)
+
+    self.assertEqual(row, {})
+
 
 if __name__ == '__main__':
   unittest.main()
