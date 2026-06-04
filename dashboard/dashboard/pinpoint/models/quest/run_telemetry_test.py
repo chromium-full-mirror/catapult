@@ -67,6 +67,8 @@ GTEST_EXECUTABLE_NAME = {
 }
 
 _CROSSBENCH_NAME = {
+    # ODML
+    'blink-ai.crossbench': 'blink-ai',
     # Jetstream
     'jetstream2.crossbench': 'jetstream_2',
     'jetstream2.0.crossbench': 'jetstream_2.0',
