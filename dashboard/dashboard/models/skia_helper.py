@@ -58,7 +58,7 @@ REPOSITORY_HOST_MAPPING = [{
     'label': 'V8',
     'public_host': None,
     'internal_host': 'https://v8-perf.corp.goog',
-    'masters': ['internal.client.v8', 'client.v8']
+    'masters': ['internal.client.v8', 'client.v8', 'client.v8.perf']
 }, {
     'label': 'Devtools-Frontend',
     'public_host': None,
@@ -69,7 +69,9 @@ REPOSITORY_HOST_MAPPING = [{
     'public_host': None,
     'internal_host': 'https://fuchsia-perf.corp.goog',
     'masters': [
-        'fuchsia.global.ci', 'turquoise-internal.integration.global.ci'
+        'fuchsia.global.ci',
+        'turquoise-internal.integration.global.ci',
+        'turquoise-internal.integration.smart.ci',
     ]
 }, {
     'label': 'Fuchsia Public',
