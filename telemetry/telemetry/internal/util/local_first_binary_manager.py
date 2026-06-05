@@ -104,11 +104,35 @@ class LocalFirstBinaryManager():
       logging.info('Not looking for local version of ignored dependency %s',
                    dependency_name)
       return None
-    local_path = os.path.join(self._build_dir, dependency_name)
+    possible_paths = []
+    if self._os in ('linux', 'mac'):
+      arch = self._arch
+      if arch in ('x86_64', 'AMD64'):
+        gn_arch = 'x64'
+      elif arch in ('aarch64', 'arm64'):
+        gn_arch = 'arm64'
+      else:
+        gn_arch = arch
+      # Check host toolchain subdirs (relevant for Android tests).
+      possible_paths.append(
+          os.path.join(self._build_dir, 'clang_' + gn_arch, dependency_name))
+    possible_paths.append(os.path.join(self._build_dir, dependency_name))
+
+    local_path = None
+    for path in possible_paths:
+      if os.path.exists(path):
+        local_path = path
+        break
+
     # Try the .exe version on Windows if the non-.exe version does not exist.
-    if not os.path.exists(local_path) and self._os == 'win':
-      local_path = local_path + '.exe'
-    if not os.path.exists(local_path):
+    if not local_path and self._os == 'win':
+      for path in possible_paths:
+        path_exe = path + '.exe'
+        if os.path.exists(path_exe):
+          local_path = path_exe
+          break
+
+    if not local_path:
       logging.info(
           'No local version of dependency found for %s', dependency_name)
       return None
