@@ -100,6 +100,7 @@ _CROSSBENCH_NAME = {
     # Embedder
     'embedder.crossbench': 'embedder',
     'gma.embedder.crossbench': 'embedder',
+    'shell.embedder.crossbench': 'embedder',
     # Loading
     'loading.crossbench': 'loading',
     # webai.crossbench
@@ -147,6 +148,17 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/hosts:/data/local/tmp/hosts',
         '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/dnsmasq.conf:/data/local/tmp/dnsmasq.conf',
         '--embedder-push-files=/b/swarming/w/ir/clank/android_webview/tools/crossbench_config/cipd/arm64/dummy_vpn.apk:/data/local/tmp/dummy_vpn.apk',
+    ),
+    'shell.embedder.crossbench': (
+        '--wpr=crossbench_android_loading_000.wprgo',
+        '--embedder=webview_embedder',
+        '--splashscreen=skip',
+        '--probe=trace_processor:{"queries":["wv_startup_memory"]}',
+        '--probe=perfetto:{"textproto": "syshealth_plus_webview", "config_via_stdin": true}',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/staggered_wv_startup_cuj_config.hjson',
+        '--android-activity=ManuallyTriggeredStartupActivity',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
     ),
     'loading.crossbench': (
         '--wpr=crossbench_android_loading_000.wprgo',
