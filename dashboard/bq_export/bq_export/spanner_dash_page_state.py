@@ -76,13 +76,18 @@ def _ExtractIds(data):
 
 
 def _IsValidAlertKeysList(loaded):
+  if isinstance(loaded, str):
+    splt = loaded.split(',')
+    if all(x.strip().isdigit() for x in splt):
+      return True
+    return False
   if not isinstance(loaded, list):
     return False
   if not loaded:
     return False
   from google.cloud.datastore.key import Key
   for item in loaded:
-    if not isinstance(item, str):
+    if not isinstance(item, str) and not isinstance(item, int):
       return False
     try:
       k = Key.from_legacy_urlsafe(item)
@@ -98,31 +103,29 @@ def PageStateEntityToRowDict(entity):
   try:
     client_entity = entity.to_client_entity()
     state_id = client_entity.key.name or str(client_entity.key.id)
-
     val = client_entity.get('value_v2') or client_entity.get('value')
     if val is None:
       return []
 
     if isinstance(val, bytes):
-      val_str = val.decode('utf-8', errors='replace')
+      val_decoded = val.decode('utf-8', errors='replace')
     else:
-      val_str = str(val)
+      val_decoded = str(val)
 
     try:
-      loaded = json.loads(val_str)
-    except (ValueError, TypeError):
+      val_str = json.loads(val_decoded)
+    except (json.JSONDecodeError, TypeError):
+      val_str = val_decoded
+
+    if not _IsValidAlertKeysList(val_str):
       return []
 
-    if not _IsValidAlertKeysList(loaded):
-      return []
-
-    anomaly_ids = _ExtractIds(loaded)
+    anomaly_ids = _ExtractIds(val_str)
 
     # Deduplicate IDs
     unique_ids = list(set(anomaly_ids))
     if unique_ids == []:
       return []
-
     return [
         PageStateRow(
             sid="\\x" + state_id, anomaly_ids=unique_ids, is_legacy=True)
