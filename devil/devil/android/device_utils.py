@@ -117,6 +117,7 @@ _PERMISSIONS_DENYLIST_RE = re.compile('|'.join(
         'android.permission.BLUETOOTH',
         'android.permission.BLUETOOTH_ADMIN',
         'android.permission.BROADCAST_STICKY',
+        'android.permission.CAPTURE_KEYBOARD',
         'android.permission.CHANGE_NETWORK_STATE',
         'android.permission.CHANGE_WIFI_MULTICAST_STATE',
         'android.permission.CHANGE_WIFI_STATE',
@@ -127,8 +128,11 @@ _PERMISSIONS_DENYLIST_RE = re.compile('|'.join(
         'android.permission.DOWNLOAD_WITHOUT_NOTIFICATION',
         'android.permission.EXPAND_STATUS_BAR',
         'android.permission.FOREGROUND_SERVICE',
+        'android.permission.FOREGROUND_SERVICE_CAMERA',
         'android.permission.FOREGROUND_SERVICE_DATA_SYNC',
         'android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK',
+        'android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION',
+        'android.permission.FOREGROUND_SERVICE_MICROPHONE',
         'android.permission.FOREGROUND_SERVICE_SPECIAL_USE',
         'android.permission.GET_PACKAGE_SIZE',
         'android.permission.INSTALL_SHORTCUT',
@@ -139,12 +143,14 @@ _PERMISSIONS_DENYLIST_RE = re.compile('|'.join(
         'android.permission.MANAGE_EXTERNAL_STORAGE',
         'android.permission.MODIFY_AUDIO_SETTINGS',
         'android.permission.NFC',
+        'android.permission.QUERY_ADVANCED_PROTECTION_MODE',
         'android.permission.QUERY_ALL_PACKAGES',
         'android.permission.READ_SYNC_SETTINGS',
         'android.permission.READ_SYNC_STATS',
         'android.permission.RECEIVE_BOOT_COMPLETED',
         'android.permission.RECORD_VIDEO',
         'android.permission.REORDER_TASKS',
+        'android.permission.REPOSITION_SELF_WINDOWS',
         'android.permission.REQUEST_INSTALL_PACKAGES',
         'android.permission.RESTRICTED_VR_ACCESS',
         'android.permission.RUN_INSTRUMENTATION',
@@ -157,6 +163,8 @@ _PERMISSIONS_DENYLIST_RE = re.compile('|'.join(
         'android.permission.USE_BIOMETRIC',
         'android.permission.USE_CREDENTIALS',
         'android.permission.USE_FINGERPRINT',
+        'android.permission.USE_LOOPBACK_INTERFACE',
+        'android.permission.USE_PINNED_WINDOWING_LAYER',
         'android.permission.VIBRATE',
         'android.permission.WAKE_LOCK',
         'android.permission.WRITE_SYNC_SETTINGS',
@@ -4591,8 +4599,10 @@ class DeviceUtils(object):
     ]
 
     if failures:
+      filename = 'third_party/catapult/devil/devil/android/device_utils.py'
       logger.warning(
-          'Failed to grant some permissions. Denylist may need to be updated?')
+          'Failed to grant some permissions. Please update '
+          '_PERMISSIONS_DENYLIST_RE in %s', filename)
       for permission, output in failures:
         # Try to grab the relevant error message from the output.
         m = _PERMISSIONS_EXCEPTION_RE.search(output)
