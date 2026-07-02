@@ -289,8 +289,8 @@ class Regressions2EntityToRowDoFn(beam.DoFn):
               "traceset": {
                   traceset: None
               },
+              "paramset": paramset,
           },
-          "paramset": paramset,
           "traceMetadata": None,  # seems to always be null
           "anomalymap": None,  # no idea why it should be here
           "display_mode": None,  # no clue what it is
