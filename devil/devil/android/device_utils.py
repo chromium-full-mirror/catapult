@@ -23,6 +23,7 @@ import tempfile
 import time
 import threading
 import uuid
+import zipfile
 
 import six
 
@@ -1402,7 +1403,8 @@ class DeviceUtils(object):
               fake_modules=None,
               additional_locales=None,
               instant_app=False,
-              force_queryable=False):
+              force_queryable=False,
+              streaming=None):
     """Install an .apk, .apks, or .aab.
 
     Noop if an identical APK is already installed. If installing a bundle, the
@@ -1433,6 +1435,8 @@ class DeviceUtils(object):
       force_queryable: A boolean that allows the installed application to be
         queryable by all other applications regardless of if they have declared
         the package as queryable in their manifests - Supported from SDK 30
+      streaming: A boolean that allows forcing or disabling streaming installs
+        (IncFS). If None, defaults to the OS behavior.
 
     Raises:
       CommandFailedError if the installation fails.
@@ -1442,6 +1446,15 @@ class DeviceUtils(object):
         apps or forcing queryable
     """
     apk = apk_helper.ToHelper(apk)
+    if streaming is None:
+      if zipfile.is_zipfile(apk.path):
+        with zipfile.ZipFile(apk.path) as z:
+          if any(name.endswith('/wrap.sh') for name in z.namelist()):
+            logger.info(
+                'Detected wrap.sh in APK. '
+                'Disabling streaming installation.')
+            streaming = False
+
     modules_set = set(modules or [])
     fake_modules_set = set(fake_modules or [])
     assert modules_set.isdisjoint(fake_modules_set), (
@@ -1464,7 +1477,8 @@ class DeviceUtils(object):
                             reinstall=reinstall,
                             permissions=permissions,
                             instant_app=instant_app,
-                            force_queryable=force_queryable)
+                            force_queryable=force_queryable,
+                            streaming=streaming)
 
   @decorators.WithTimeoutAndRetriesFromInstance(
       min_default_timeout=INSTALL_DEFAULT_TIMEOUT)
@@ -1608,7 +1622,8 @@ class DeviceUtils(object):
                       retries=None,
                       instant_app=False,
                       force_queryable=False,
-                      install_all_splits=False):
+                      install_all_splits=False,
+                      streaming=None):
     """Install an apk and .apk splits.
 
     Noop if all of the APK splits are already installed.
@@ -1631,6 +1646,8 @@ class DeviceUtils(object):
         queryable by all other applications regardless of if they have declared
         the package as queryable in their manifests - Supported from SDK 30
       install_all_splits: If False, filter the list of splits using split-select.
+      streaming: A boolean that allows forcing or disabling streaming installs
+        (IncFS). If None, defaults to the OS behavior.
 
     Raises:
       CommandFailedError if the installation fails.
@@ -1658,7 +1675,8 @@ class DeviceUtils(object):
                             permissions=permissions,
                             allow_downgrade=allow_downgrade,
                             instant_app=instant_app,
-                            force_queryable=force_queryable)
+                            force_queryable=force_queryable,
+                            streaming=streaming)
 
   def _InstallInternal(self,
                        apk,
@@ -1667,7 +1685,8 @@ class DeviceUtils(object):
                        reinstall=False,
                        permissions=None,
                        instant_app=False,
-                       force_queryable=False):
+                       force_queryable=False,
+                       streaming=None):
     if not apk_paths:
       raise device_errors.CommandFailedError('Did not get any APKs to install')
 
@@ -1721,12 +1740,12 @@ class DeviceUtils(object):
       if apks_to_install:
         partial = package_name if len(apks_to_install) < len(
             apk_paths) else None
-        streaming = None
-        if self.product_name in _NO_STREAMING_DEVICE_LIST:
-          streaming = False
-        if (self.is_emulator
-            and self.build_version_sdk in _NO_STREAMING_EMULATOR_API_LEVELS):
-          streaming = False
+        if streaming is None:
+          if self.product_name in _NO_STREAMING_DEVICE_LIST:
+            streaming = False
+          if (self.is_emulator
+              and self.build_version_sdk in _NO_STREAMING_EMULATOR_API_LEVELS):
+            streaming = False
         logger.info('Installing package %s using APKs %s', package_name,
                     apks_to_install)
         if len(apks_to_install) > 1 or partial:

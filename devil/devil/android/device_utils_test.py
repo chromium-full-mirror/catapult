@@ -1278,6 +1278,35 @@ class DeviceUtilsInstallTest(DeviceUtilsTest):
           (self.call.device.GrantPermissions(TEST_PACKAGE, ['p1']), [])):
         self.device.Install(DeviceUtilsInstallTest.mock_apk, retries=0)
 
+  def testInstall_wrapShAutoDetection(self):
+    with self.patch_call(self.call.device.product_name,
+                         return_value='notflounder'), \
+         self.patch_call(self.call.device.is_emulator, return_value=False), \
+         self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.NOUGAT), \
+         mock.patch('zipfile.is_zipfile', return_value=True), \
+         mock.patch('zipfile.ZipFile') as mock_zipfile:
+      mock_zip = mock.MagicMock()
+      mock_zip.namelist.return_value = [
+          'lib/x86_64/wrap.sh', 'lib/x86_64/libfoo.so'
+      ]
+      mock_zipfile.return_value.__enter__.return_value = mock_zip
+      with self.assertCalls(
+          (self.call.device._FakeInstall(set(), None, 'test.package')),
+          (mock.call.os.path.exists(TEST_APK_PATH), True),
+          (self.call.device._GetApplicationPathsInternal(TEST_PACKAGE), []),
+          (self.call.device._ComputeStaleApks(TEST_PACKAGE, [TEST_APK_PATH]),
+           ([TEST_APK_PATH], [], None)),
+          self.call.adb.Install(TEST_APK_PATH,
+                                reinstall=False,
+                                streaming=False,
+                                allow_downgrade=False,
+                                instant_app=False,
+                                force_queryable=False),
+          (self.call.device.IsApplicationInstalled(TEST_PACKAGE, None), True),
+          (self.call.device.GrantPermissions(TEST_PACKAGE, ['p1']), [])):
+        self.device.Install(DeviceUtilsInstallTest.mock_apk, retries=0)
+
   def testInstall_permissionsPreM(self):
     with self.patch_call(self.call.device.product_name,
                          return_value='notflounder'), \
