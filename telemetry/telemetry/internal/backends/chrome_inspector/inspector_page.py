@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 from __future__ import absolute_import
-import logging
 import time
 
 from telemetry.util import image_util
@@ -82,29 +81,6 @@ class InspectorPage():
     res = self._inspector_websocket.SyncRequest(request, timeout)
     assert len(res['result']) == 0
 
-  def _GetFrameUrls(self, timeout=5.0):
-    try:
-      result = self._inspector_websocket.SyncRequest(
-          {'method': 'Target.getTargets'}, timeout)
-      return {
-          target_info['targetId']: target_info['url']
-          for target_info in result['result']['targetInfos']
-      }
-    except Exception:  # pylint: disable=broad-except
-      logging.exception('Error on getting frame urls')
-      return {}
-
-  def _WaitForTargetUpdate(self, frame_id, prev_url, timeout=5.0):
-    start_time = time.time()
-    remaining_time = timeout
-
-    while remaining_time > 0:
-      remaining_time = max(timeout - (time.time() - start_time), 0.0)
-      frame_url = self._GetFrameUrls(remaining_time).get(frame_id)
-      if frame_url and frame_url != prev_url:
-        return
-      time.sleep(0.01)
-
   def WaitForNavigate(self, timeout=60):
     """Waits for the navigation to complete.
 
@@ -126,7 +102,6 @@ class InspectorPage():
     the page exists, but before any script on the page itself has executed.
     """
 
-    urls = self._GetFrameUrls()
     self._SetScriptToEvaluateOnCommit(script_to_evaluate_on_commit, timeout)
     request = {
         'method': 'Page.navigate',
@@ -148,9 +123,7 @@ class InspectorPage():
       # TODO(tonyg): Remove this when Chrome 38 goes stable.
       self._navigated_frame_ids = None
       self._navigation_url = url
-      frame_id = ''
     self.WaitForNavigate(timeout)
-    self._WaitForTargetUpdate(frame_id, urls.get(frame_id))
 
   def CaptureScreenshot(self, timeout=60):
     """Captures a screenshot of the visible web contents.
