@@ -147,11 +147,14 @@ def GetSkiaUrlsForAlertGroup(alert_group_id: str,
 
 
 def GetSkiaUrlForAnomaly(anomaly: graph_data.anomaly.Anomaly) -> str:
+  if not anomaly.key or anomaly.key.integer_id() is None:
+    return ''
   repo_map = _GetRepoMapForMaster(anomaly.master_name)
   if repo_map:
     host = repo_map['internal_host'] if anomaly.internal_only else repo_map[
           'public_host']
-    return '%s/u/?anomalyIDs=%s' % (host, anomaly.key.integer_id())
+    if host:
+      return '%s/u/?anomalyIDs=%s' % (host, anomaly.key.integer_id())
 
   return ''
 

@@ -290,6 +290,23 @@ class SkiaHelper(testing_common.TestCase):
 
   @mock.patch('dashboard.models.skia_helper.REPOSITORY_HOST_MAPPING',
               MOCK_MAPPING)
+  def testGetSkiaUrlForAnomaly_InternalNoneHost(self):
+    a = self._AddAnomaly(
+        test_key=utils.TestKey('master_c/bot/benchmark/test'),
+        internal_only=True)
+    url = skia_helper.GetSkiaUrlForAnomaly(anomaly=a)
+    self.assertEqual(url, '')
+
+  @mock.patch('dashboard.models.skia_helper.REPOSITORY_HOST_MAPPING',
+              MOCK_MAPPING)
+  def testGetSkiaUrlForAnomaly_NoKey(self):
+    a = anomaly.Anomaly(
+        test=utils.TestKey('master_a/bot/benchmark/test'), internal_only=True)
+    url = skia_helper.GetSkiaUrlForAnomaly(anomaly=a)
+    self.assertEqual(url, '')
+
+  @mock.patch('dashboard.models.skia_helper.REPOSITORY_HOST_MAPPING',
+              MOCK_MAPPING)
   def testGetSkiaUrlForAnomaly_InvalidMaster(self):
     a = self._AddAnomaly(
         test_key=utils.TestKey('master_x/bot/benchmark/test'),

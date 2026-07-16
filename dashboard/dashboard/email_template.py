@@ -14,6 +14,7 @@ import six.moves.urllib.parse
 from google.appengine.api import urlfetch
 
 from dashboard.common import utils
+from dashboard.models import skia_helper
 
 _SINGLE_EMAIL_SUBJECT = ('%(percent_changed)s %(change_type)s in %(test_name)s '
                          'on %(bot)s at %(start)d:%(end)d')
@@ -242,7 +243,7 @@ def GetAlertInfo(alert, test):
   master = test.master_name
   bot = test.bot_name
 
-  triage_url = GetGroupReportPageLink(alert)
+  triage_url = skia_helper.GetSkiaUrlForAnomaly(alert)
 
   # Parameters to interpolate into strings below.
   interpolation_parameters = {
