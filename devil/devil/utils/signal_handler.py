@@ -20,7 +20,10 @@ def SignalHandler(signalnum, handler):
     signal.signal(signalnum, handler)
     yield
   finally:
-    signal.signal(signalnum, existing_handler)
+    if existing_handler is not None:
+      signal.signal(signalnum, existing_handler)
+    else:
+      signal.signal(signalnum, signal.SIG_DFL)
 
 
 @contextlib.contextmanager
@@ -45,4 +48,7 @@ def AddSignalHandler(signalnum, additional_handler):
     signal.signal(signalnum, handler)
     yield
   finally:
-    signal.signal(signalnum, existing_handler)
+    if existing_handler is not None:
+      signal.signal(signalnum, existing_handler)
+    else:
+      signal.signal(signalnum, signal.SIG_DFL)
