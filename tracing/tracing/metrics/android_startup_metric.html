@@ -40,6 +40,10 @@ found in the LICENSE file.
 //   application starts. The end time of this event will be the same as the
 //   start time of messageloop_start_time.
 //
+// * cold_start_time_to_first_frame2 - The time from process start to the
+//   moment the first frame is drawn for the app, as determined by Android.
+//   Recorded regardless of what is loaded (i.e. NTP, web, etc.).
+//
 // The metric also supports multiple browser restarts, in this case multiple
 // samples would be added to the histograms above.
 tr.exportTo('tr.metrics.sh', function() {
@@ -48,6 +52,8 @@ tr.exportTo('tr.metrics.sh', function() {
   const FIRST_CONTENTFUL_PAINT_EVENT_NAME = 'firstContentfulPaint';
   const APPLICATION_START_EVENT_NAME =
       'Startup.LoadTime.ProcessCreateToApplicationStart';
+  const COLD_START_TIME_TO_FIRST_FRAME_EVENT_NAME =
+      'Startup.Android.Cold.TimeToFirstFrame2';
   const REQUEST_ALIVE = 'REQUEST_ALIVE';
 
   function isGetRequest(event) {
@@ -81,6 +87,7 @@ tr.exportTo('tr.metrics.sh', function() {
     // message loop start.
     let messageLoopStartEvents = [];
     let applicationStartEvents = [];
+    let firstFrameEvents = [];
     let navigationPairs = [];
 
     function organizeBrowserEventByTitle(event, browserProcess, networkProcesses) {
@@ -88,6 +95,8 @@ tr.exportTo('tr.metrics.sh', function() {
         messageLoopStartEvents.push(event);
       } else if (event.title === APPLICATION_START_EVENT_NAME) {
         applicationStartEvents.push(event);
+      } else if (event.title === COLD_START_TIME_TO_FIRST_FRAME_EVENT_NAME) {
+        firstFrameEvents.push(event);
       } else if (event.title === NAVIGATION_EVENT_NAME) {
         let networkEvents =
             tr.e.chrome.EventFinderUtils.getNetworkEventsInRange(browserProcess,
@@ -146,11 +155,13 @@ tr.exportTo('tr.metrics.sh', function() {
     if (totalBrowserStarts !== totalFcpEvents ||
         totalBrowserStarts !== navigationPairs.length ||
         totalBrowserStarts !== applicationStartEvents.length ||
+        totalBrowserStarts !== firstFrameEvents.length ||
         totalBrowserStarts === 0) {
       messageLoopStartEvents.length = 0;
       navigationPairs.length = 0;
       firstContentfulPaintEvents.length = 0;
       applicationStartEvents.length = 0;
+      firstFrameEvents.length = 0;
       // Sometimes either the browser process or the renderer process does not
       // have the proper name attached. This often happens when both chrome
       // trace and systrace are merged. Other multi-process trickery, like
@@ -176,6 +187,7 @@ tr.exportTo('tr.metrics.sh', function() {
     }
     messageLoopStartEvents.sort(orderEvents);
     applicationStartEvents.sort(orderEvents);
+    firstFrameEvents.sort(orderEvents);
     firstContentfulPaintEvents.sort(orderEvents);
     function orderPairs(pair1, pair2) {
       return pair1['nav'].start - pair2['nav'].start;
@@ -251,6 +263,9 @@ tr.exportTo('tr.metrics.sh', function() {
     const applicationStartHistogram = histograms.createHistogram(
         'process_create_to_app_start_time',
         tr.b.Unit.byName.timeDurationInMs_smallerIsBetter, []);
+    const firstFrameHistogram = histograms.createHistogram(
+        'cold_start_time_to_first_frame2',
+        tr.b.Unit.byName.timeDurationInMs_smallerIsBetter, []);
     // The earliest 2 browser starts are skipped to reduce measurement noise.
     // See http://crbug.com/891797.
     let navIndex = 0;
@@ -260,6 +275,7 @@ tr.exportTo('tr.metrics.sh', function() {
       // There should be a corresponding application start event for each
       // message loop start event.
       const applicationStartEvent = applicationStartEvents[loopStartIndex];
+      const firstFrameEvent = firstFrameEvents[loopStartIndex];
       if (fcpIndex === totalFcpEvents) {
         break;
       }
@@ -311,6 +327,10 @@ tr.exportTo('tr.metrics.sh', function() {
       if (applicationStartEvent) {
         applicationStartHistogram.addSample(applicationStartEvent.duration,
             {events: new tr.v.d.RelatedEventSet([applicationStartEvent])});
+      }
+      if (firstFrameEvent) {
+        firstFrameHistogram.addSample(firstFrameEvent.duration,
+            {events: new tr.v.d.RelatedEventSet([firstFrameEvent])});
       }
     }
   }
