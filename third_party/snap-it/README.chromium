@@ -1,0 +1,19 @@
+Name: snap-it
+URL: This is the canonical public repository
+Version: N/A
+License: Apache-2.0
+License File: LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+Chrome Extension that takes an exact visual snapshot of a webpage
+
+The source code of this project is developed in
+https://chromium.googlesource.com/catapult/+/HEAD/third_party/snap-it/. See
+https://chromium.googlesource.com/catapult/+/HEAD/CONTRIBUTING.md for
+contribution guidelines.
+
+Local Modifications:
+None

@@ -1,0 +1,16 @@
+Name: Flask
+URL: https://github.com/pallets/flask
+Version: 1.1.2
+License: BSD-3-Clause
+License File: LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+Flask is a lightweight WSGI web application framework. It is designed
+to make getting started quick and easy, with the ability to scale up
+to complex applications.
+
+Local Modifications:
+None

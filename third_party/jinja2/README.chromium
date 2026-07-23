@@ -1,0 +1,15 @@
+Name: jinja2
+URL: https://github.com/pallets/jinja
+Version: 2.11.2
+License: BSD-3-Clause
+License File: LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+Jinja is a modern and designer-friendly templating language for Python,
+modelled after Django’s templates.
+
+Local Modifications:
+None

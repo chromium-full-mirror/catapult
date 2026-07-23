@@ -5,6 +5,8 @@ Version: 2.1.3
 License: ISC
 License File: LICENSE
 Security Critical: no
+Shipped: no
+Update Mechanism: Manual
 
 Description:
 This directory contains a modified version of the compiled JavaScript source for
@@ -15,3 +17,6 @@ The original source has been modified to support ES6 modules.
 
 The source git repository can be found at:
 https://github.com/jakearchibald/idb
+
+Local Modifications:
+Modified to support ES6 modules.

@@ -1,0 +1,14 @@
+Name: werkzeug
+URL: https://github.com/pallets/werkzeug
+Version: 1.0.1
+License: BSD-3-Clause, Ubuntu-font-1.0
+License File: LICENSE, debug/shared/FONT_LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+Werkzeug is a comprehensive WSGI web application library.
+
+Local Modifications:
+None

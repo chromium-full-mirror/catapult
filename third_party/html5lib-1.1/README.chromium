@@ -1,0 +1,16 @@
+Name: html5lib
+URL: https://github.com/html5lib/html5lib-python
+Version: 1.1
+License: MIT
+License File: LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+html5lib is a pure-python library for parsing HTML. It is designed to
+conform to the WHATWG HTML specification, as is implemented by all major
+web browsers.
+
+Local Modifications:
+None

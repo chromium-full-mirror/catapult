@@ -1,0 +1,15 @@
+Name: requests
+URL: https://github.com/psf/requests
+Version: 2.22.0
+License: Apache-2.0
+License File: LICENSE
+Security Critical: no
+Shipped: no
+Update Mechanism: Manual
+
+Description:
+Python HTTP for Humans.
+
+Local Modifications:
+Modified requests/cookies.py to use get() instead of deprecated getheaders()
+for Python 3 compatibility.
