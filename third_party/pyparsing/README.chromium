@@ -2,11 +2,11 @@ Name: pyparsing
 URL: https://pypi.org/project/pyparsing
 Version: 2.4.7
 Update Mechanism: Manual
-CPEPrefix: unknown
+CPEPrefix: cpe:2.3:a:pyparsing_project:pyparsing:*:*:*:*:*:*:*:*
 License: MIT
 License File: LICENSE
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 PyParsing – A Python Parsing Module

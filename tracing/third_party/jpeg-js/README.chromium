@@ -5,7 +5,7 @@ Version: 0.4.4
 Revision: 9ccd35fb5f55a6c4f1902ac5b0f270f675750c27
 Update Mechanism: Manual
 Date: 2022-06-03
-License: Apache-2.0
+License: BSD-3-Clause, Apache-2.0
 License File: LICENSE
 Security Critical: no
 Shipped: yes
@@ -19,3 +19,4 @@ Did not include encoder as we do not need it yet. Replaced module exporting
 code with
 `global.jpegDecode = decode`
 since we do not use node-styled modules in catapult and that throws an error.
+

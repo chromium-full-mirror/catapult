@@ -7,7 +7,7 @@ Update Mechanism: Manual
 License: Apache-2.0
 License File: LICENSE.txt
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 Coverage.py measures code coverage, typically during test execution. It uses the

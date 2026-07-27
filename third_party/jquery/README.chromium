@@ -4,11 +4,12 @@ Version: 2.1.4
 Update Mechanism: Manual
 License: MIT
 License File: LICENSE.txt
-Security Critical: No
-Shipped: yes
+Security Critical: no
+Shipped: no
+
 
 Description:
-Flot is a JavaScript chart plotting library based on jQuery.
+jQuery is a fast, small, and feature-rich JavaScript library.
 
 Local Modifications:
 Three separate files downloaded from jquery.com: The minified version,

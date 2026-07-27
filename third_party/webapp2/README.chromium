@@ -1,9 +1,15 @@
 Name: webapp2
-URL: https://pypi.python.org/pypi/webapp2
-Version: 2.5.2
-Date: 2012-09-28
+URL: https://pypi.org/project/webapp2/
+Version: 2.5.1
+Date: 2012-02-07
 Update Mechanism: Manual
 License: Apache-2.0, MIT, BSD-3-Clause
 License File: LICENSE
 Security Critical: no
-Shipped: yes
+Shipped: no
+
+Description:
+Webapp2 is a lightweight Python web framework compatible with Google App Engine's webapp.
+
+Local Modifications:
+None

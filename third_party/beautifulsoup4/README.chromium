@@ -5,8 +5,8 @@ Version: 4.3.2
 Update Mechanism: Manual
 License: MIT
 License File: COPYING.txt
-Security Critical: No
-Shipped: yes
+Security Critical: no
+Shipped: no
 
 Description:
 Beautiful Soup is a library for HTML parsing.

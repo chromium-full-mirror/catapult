@@ -7,10 +7,13 @@ Update Mechanism: Manual
 License: MIT
 License File: LICENSE.md
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 This directory contains only the compiled javascript source for Redux.
 
 The source git repository can be found at:
 https://github.com/reactjs/redux
+
+Local Modifications:
+Kept only the compiled javascript source.

@@ -7,7 +7,7 @@ License File: COPYING
 Revision: d8f33c65c598fbfabdc5785dd60f765f973d164f
 Update Mechanism: Manual
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 The Google Cloud Storage client library is a client-side library that is not

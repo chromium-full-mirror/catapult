@@ -4,7 +4,7 @@ Version: 0.11.0
 Revision: 4b1eb346fb1fde1b245b9f9fd872746242e05147
 Update Mechanism: Manual
 Security Critical: no
-Shipped: yes
+Shipped: no
 License: Apache-2.0
 License File: LICENSE
 
@@ -28,3 +28,6 @@ the same directory as this file).
                                   > typ_new/README.chromium
     rm -fr typ_new/.git typ_new/.gitignore typ/
     mv typ_new typ
+
+Local Modifications:
+None

@@ -4,10 +4,14 @@ URL: https://pypi.python.org/pypi/altgraph/
 Version: 0.12
 Update Mechanism: Manual
 License: MIT
+License File: LICENSE
 Security Critical: no
 Shipped: no
+
 Description: altgraph is a fork of graphlib: a graph (network) package for
 constructing graphs, BFS and DFS traversals, topological sort, shortest paths,
 etc. with graphviz output. altgraph is used by
 telemetry/third_party/modulegraph.
-Local modification: remove doc/_build directory.
+
+Local modifications:
+- remove doc/_build directory.

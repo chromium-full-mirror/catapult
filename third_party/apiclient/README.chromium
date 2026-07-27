@@ -6,7 +6,7 @@ Update Mechanism: Manual
 License: Apache-2.0
 License File: LICENSE
 Security Critical: no
-Shipped: yes
+Shipped: no
 
 Description:
 The Google API Client for Python is a client library for accessing Google APIs.
