@@ -384,7 +384,8 @@ class JobState:
           if not e.result_values:
             continue
           for v in e.result_values:
-            yield v
+            if v is not None:
+              yield v
 
       all_a_values = tuple(AllValues(executions_a))
       all_b_values = tuple(AllValues(executions_b))
