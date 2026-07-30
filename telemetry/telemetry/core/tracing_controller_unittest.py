@@ -190,6 +190,14 @@ class StartupTracingTest(unittest.TestCase):
   @decorators.Disabled('chromeos')  # https://crbug.com/920454
   @decorators.Disabled('win')  # https://crbug.com/957831
   def testRestartBrowserWhileTracing(self):
+    # Increase trace buffer capacity to prevent overrun across 4 browser
+    # restarts. On macOS, each startup with default categories ('*') emits
+    # ~50-65 MB of trace events due to CoreAnimation/GPU compositing, Mach IPC,
+    # and native UI overheads (compared to ~35-45 MB on Linux). Across 4
+    # consecutive restarts, macOS trace volume reaches ~200-260 MB, exceeding
+    # the default 200 MiB ring buffer limit. Allocating 400 MB (100 MB per
+    # instance) provides ample headroom across all 4 restarts.
+    self.config.chrome_trace_config.SetTraceBufferSizeInKb(400000)
     expected_markers = ['trace-event-%i' % i for i in range(4)]
     self.tracing_controller.StartTracing(self.config)
     try:
