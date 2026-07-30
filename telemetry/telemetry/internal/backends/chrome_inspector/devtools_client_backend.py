@@ -434,6 +434,10 @@ class _DevToolsClientBackend():
 
   def FirstTabBackend(self):
     """Obtain the inspector backend for the firstly created tab."""
+    for backend in self._IterInspectorBackends(['page']):
+      # Ignore WebUI / extension / internal popup pages
+      if backend.url and not backend.url.startswith('chrome://'):
+        return backend
     return next(self._IterInspectorBackends(['page']), None)
 
   # TODO(cbruni): lover timeout faster investigating  crbug.com/1395482
