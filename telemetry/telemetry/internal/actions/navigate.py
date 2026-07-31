@@ -17,15 +17,19 @@ class NavigateAction(page_action.PageAction):
     self._url = url
     self._script_to_evaluate_on_commit = script_to_evaluate_on_commit
 
+  def _GetTimeLeftInSeconds(self, start_time):
+    time_left = start_time + self.timeout - time.time()
+    return max(0, time_left)
+
   def RunAction(self, tab):
     start_time = time.time()
     tab.Navigate(self._url, self._script_to_evaluate_on_commit,
                  self.timeout)
 
-    time_left_in_seconds = (start_time + self.timeout - time.time())
-    time_left_in_seconds = max(0, time_left_in_seconds)
-    tab.WaitForDocumentReadyStateToBeInteractiveOrBetter(time_left_in_seconds)
-    tab.WaitForFrameToBeDisplayed()
+    tab.WaitForDocumentReadyStateToBeInteractiveOrBetter(
+        self._GetTimeLeftInSeconds(start_time))
+    tab.WaitForFrameToBeDisplayed(
+        timeout=self._GetTimeLeftInSeconds(start_time))
 
   def __str__(self):
     return "%s(%s)" % (self.__class__.__name__, self._url)
