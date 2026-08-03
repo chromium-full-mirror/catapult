@@ -156,7 +156,7 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--probe-config=../../third_party/crossbench/config/team/woa/wv_shell_memory.probe.config.hjson',
         '--cuj-config=../../third_party/crossbench/config/team/woa/staggered_wv_startup_cuj_config.hjson',
         '--android-activity=ManuallyTriggeredStartupActivity',
-        '--repetitions=50',
+        '--repetitions=25',
         '--cool-down-threshold=moderate',
     ),
     'loading.crossbench': (
