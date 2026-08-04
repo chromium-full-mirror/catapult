@@ -145,6 +145,11 @@ class StartupTracingTest(unittest.TestCase):
     if not self.possible_browser:
       raise Exception('No browser found, cannot continue test.')
     self.browser_options = finder_options.browser_options
+    # TODO(crbug.com/452061489): Fix tests that fail when the WebUI
+    # Omnibox is enabled and then remove this.
+    self.browser_options.AppendExtraBrowserArgs([
+        '--disable-features=WebUIOmniboxPopup,WebUIOmniboxAimPopup',
+    ])
     self.config = tracing_config.TracingConfig()
     self.config.enable_chrome_trace = True
 
