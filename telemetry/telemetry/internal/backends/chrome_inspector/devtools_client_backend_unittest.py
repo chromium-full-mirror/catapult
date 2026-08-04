@@ -15,6 +15,7 @@ def filterContexts(contexts):
   return [
       c for c in contexts if c['url'] not in [
           'chrome://omnibox-popup.top-chrome/',
+          'chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html',
           'chrome://webui-toolbar.top-chrome/',
       ]
   ]
