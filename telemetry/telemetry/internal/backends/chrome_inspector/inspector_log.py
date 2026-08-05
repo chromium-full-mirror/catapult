@@ -6,7 +6,8 @@ import logging
 
 
 class InspectorLog():
-  def __init__(self, inspector_websocket):
+
+  def __init__(self, inspector_websocket, timeout=60):
     """Enables the Log domain of DevTools protocol.
 
     This class subscribes to DevTools log entries and forwards error entries
@@ -17,7 +18,7 @@ class InspectorLog():
 
     self._inspector_websocket = inspector_websocket
     self._inspector_websocket.RegisterDomain('Log', self._OnMessage)
-    self._Enable()
+    self._Enable(timeout=timeout)
 
   def _OnMessage(self, message):
     if message['method'] == 'Log.entryAdded':

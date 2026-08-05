@@ -80,7 +80,7 @@ class InspectorBackend(six.with_metaclass(trace_event.TracedMetaClass, object)):
       self._websocket.Connect(self.debugger_url, timeout)
       self._console = inspector_console.InspectorConsole(self._websocket)
       self._fetch = inspector_fetch.InspectorFetch(self._websocket)
-      self._log = inspector_log.InspectorLog(self._websocket)
+      self._log = inspector_log.InspectorLog(self._websocket, timeout=timeout)
       self._memory = inspector_memory.InspectorMemory(self._websocket)
       self._runtime = inspector_runtime.InspectorRuntime(self._websocket)
       self._storage = inspector_storage.InspectorStorage(self._websocket)
