@@ -194,6 +194,7 @@ class StartupTracingTest(unittest.TestCase):
   @decorators.Isolated
   @decorators.Disabled('chromeos')  # https://crbug.com/920454
   @decorators.Disabled('win')  # https://crbug.com/957831
+  @decorators.Disabled('linux')  # https://crbug.com/540795572
   def testRestartBrowserWhileTracing(self):
     # Increase trace buffer capacity to prevent overrun across 4 browser
     # restarts. On macOS, each startup with default categories ('*') emits
