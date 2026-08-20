@@ -16,7 +16,6 @@ import stat
 import subprocess
 import sys
 import tempfile
-import time
 
 import py_utils
 from py_utils import cloud_storage_global_lock  # pylint: disable=unused-import
@@ -111,6 +110,22 @@ class CredentialsError(CloudStorageError):
     super().__init__(
         'Attempted to access a file from Cloud Storage but you have no '
         'configured credentials. ' + self._GetConfigInstructions())
+
+
+class HashMismatchError(CloudStorageError):
+
+  def __init__(self, expected_hash, actual_hash, file_path):
+    message = (
+        'Hash mismatch for downloaded file. Expected: %s, Actual: %s. '
+        'For example, the file may be corrupted or it may have been '
+        'modified. File path: %s.\n'
+        'Please make sure that the binary file is uploaded using '
+        'depot_tools/upload_to_google_storage.py script or through '
+        'automatic framework.' % (expected_hash, actual_hash, file_path))
+    super().__init__(message)
+    self.expected_hash = expected_hash
+    self.actual_hash = actual_hash
+    self.file_path = file_path
 
 
 class CloudStorageIODisabled(CloudStorageError):
@@ -529,9 +544,85 @@ def Upload(bucket, remote_path, local_path, publicly_readable=False):
   return CloudFilepath(bucket, remote_path)
 
 
+def _DownloadAndVerify(bucket, remote_path, local_path, expected_hash):
+  """Download a file from GCS and verify its hash.
+
+  Deletes the local file if the hash check fails.
+
+  Args:
+    bucket: The GCS bucket name.
+    remote_path: The remote file path in the bucket.
+    local_path: The local path to download the file to.
+    expected_hash: The SHA-1 hash to verify the downloaded file against.
+
+  Raises:
+    CloudStorageError: If the file is not found on disk after download.
+    HashMismatchError: If the downloaded file's hash does not match
+      expected_hash.
+  """
+  _GetLocked(bucket, remote_path, local_path)
+  if not os.path.exists(local_path):
+    raise CloudStorageError(
+        'Downloaded file not found at %s after download attempt.' %
+        local_path)
+  actual_hash = CalculateHash(local_path)
+  if actual_hash != expected_hash:
+    os.remove(local_path)
+    raise HashMismatchError(expected_hash, actual_hash, local_path)
+
+
+def _GetFetchTsPath(file_path):
+  return file_path + '.fetchts'
+
+
+def _ReadFetchTs(file_path):
+  """Read the recorded modification time of the .sha1 file from .fetchts.
+
+  Args:
+    file_path: The path of the binary file whose cache is being checked.
+
+  Returns:
+    The timestamp as float, or None if the cache file does not exist,
+    is unreadable, or contains invalid data.
+  """
+  ts_path = _GetFetchTsPath(file_path)
+  if not os.path.exists(ts_path):
+    return None
+  try:
+    with open(ts_path) as f:
+      return float(f.read().strip())
+  except (IOError, ValueError):
+    return None
+
+
+def _WriteFetchTs(file_path, hash_mtime):
+  """Write the modification time of the .sha1 file to the .fetchts file.
+
+  Args:
+    file_path: The path of the binary file to write cache for.
+    hash_mtime: The modification time of the .sha1 metadata file.
+  """
+  ts_path = _GetFetchTsPath(file_path)
+  with open(ts_path, 'w') as f:
+    f.write(str(hash_mtime))
+
+
+def _InvalidateFetchTs(file_path):
+  """Delete the .fetchts cache file.
+
+  Args:
+    file_path: The path of the binary file to invalidate cache for.
+  """
+  ts_path = _GetFetchTsPath(file_path)
+  try:
+    os.remove(ts_path)
+  except FileNotFoundError:
+    pass
+
+
 def GetIfHashChanged(cs_path, download_path, bucket, file_hash):
-  """Downloads |download_path| to |file_path| if |file_path| doesn't exist or
-     it's hash doesn't match |file_hash|.
+  """Downloads the file at |cs_path| in the GCS |bucket| to |download_path|
+  if |download_path| doesn't exist or its hash doesn't match |file_hash|.
 
   Returns:
     True if the binary was changed.
@@ -539,12 +630,14 @@ def GetIfHashChanged(cs_path, download_path, bucket, file_hash):
     CredentialsError if the user has no configured credentials.
     PermissionError if the user does not have permission to access the bucket.
     NotFoundError if the file is not in the given bucket in cloud_storage.
+    HashMismatchError if the downloaded file's hash does not match |file_hash|.
   """
   with _FileLock(download_path):
     if (os.path.exists(download_path) and
         CalculateHash(download_path) == file_hash):
       return False
-    _GetLocked(bucket, cs_path, download_path)
+    _InvalidateFetchTs(download_path)
+    _DownloadAndVerify(bucket, cs_path, download_path, file_hash)
     return True
 
 
@@ -558,52 +651,48 @@ def GetIfChanged(file_path, bucket):
     CredentialsError if the user has no configured credentials.
     PermissionError if the user does not have permission to access the bucket.
     NotFoundError if the file is not in the given bucket in cloud_storage.
+    HashMismatchError if the downloaded file's hash does not match the
+      expected hash.
   """
   with _FileLock(file_path):
     hash_path = file_path + '.sha1'
-    fetch_ts_path = file_path + '.fetchts'
     if not os.path.exists(hash_path):
       logger.warning('Hash file not found: %s', hash_path)
       return False
 
     expected_hash = ReadHash(hash_path)
+    hash_mtime = os.path.getmtime(hash_path)
 
     # To save the time required computing binary hash (which is an expensive
     # operation, see crbug.com/793609#c2 for details), any time we fetch a new
-    # binary, we save not only that binary but the time of the fetch in
-    # |fetch_ts_path|. Anytime the file needs updated (its
-    # hash in |hash_path| change), we can just need to compare the timestamp of
-    # |hash_path| with the timestamp in |fetch_ts_path| to figure out
-    # if the update operation has been done.
+    # binary, we save not only that binary but the modification time of the
+    # .sha1 file in the .fetchts file. Anytime the file needs to be updated (its
+    # hash in |hash_path| changes), we compare the timestamp of |hash_path| with
+    # the timestamp in the .fetchts file to figure out if the update operation
+    # has been done.
     #
     # Notes: for this to work, we make the assumption that only
     # cloud_storage.GetIfChanged modifies the local |file_path| binary.
 
-    if os.path.exists(fetch_ts_path) and os.path.exists(file_path):
-      with open(fetch_ts_path) as f:
-        data = f.read().strip()
-        last_binary_fetch_ts = float(data)
-
-      if last_binary_fetch_ts > os.path.getmtime(hash_path):
+    if os.path.exists(file_path):
+      last_binary_fetch_ts = _ReadFetchTs(file_path)
+      if (last_binary_fetch_ts is not None and
+          last_binary_fetch_ts >= hash_mtime):
         return False
 
-    # Whether the binary stored in local already has hash matched
-    # expected_hash or we need to fetch new binary from cloud, update the
-    # timestamp in |fetch_ts_path| with current time anyway since it is
-    # outdated compared with sha1's last modified time.
-    with open(fetch_ts_path, 'w') as f:
-      f.write(str(time.time()))
-
+    # If the local file already exists and has the correct hash, update the
+    # timestamp in the .fetchts file so subsequent runs can skip the hash check.
     if os.path.exists(file_path) and CalculateHash(file_path) == expected_hash:
+      _WriteFetchTs(file_path, hash_mtime)
       return False
-    _GetLocked(bucket, expected_hash, file_path)
-    if CalculateHash(file_path) != expected_hash:
-      os.remove(fetch_ts_path)
-      raise RuntimeError(
-          'Binary stored in cloud storage does not have hash matching .sha1 '
-          'file. Please make sure that the binary file is uploaded using '
-          'depot_tools/upload_to_google_storage.py script or through automatic '
-          'framework.')
+
+    # If the file is missing or has a bad hash, invalidate the cache before
+    # downloading. We only write the success timestamp after the download and
+    # verification succeed, preventing intermediate failures from leaving a
+    # stale cache.
+    _InvalidateFetchTs(file_path)
+    _DownloadAndVerify(bucket, expected_hash, file_path, expected_hash)
+    _WriteFetchTs(file_path, hash_mtime)
     return True
 
 
