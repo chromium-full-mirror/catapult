@@ -13,12 +13,6 @@ found in the LICENSE file.
 <link rel="import" href="/tracing/ui/base/info_bar_group.html">
 <link rel="import" href="/tracing/ui/base/overlay.html">
 <link rel="import" href="/tracing/ui/base/utils.html">
-<link rel="import"
-      href="/tracing/ui/extras/about_tracing/inspector_tracing_controller_client.html">
-<link rel="import"
-      href="/tracing/ui/extras/about_tracing/record_controller.html">
-<link rel="import"
-      href="/tracing/ui/extras/about_tracing/xhr_based_tracing_controller_client.html">
 <link rel="import" href="/tracing/ui/timeline_view.html">
 
 <style>
@@ -26,10 +20,6 @@ x-profiling-view {
   flex-direction: column;
   display: flex;
   padding: 0;
-}
-
-x-profiling-view .controls #save-button {
-  margin-left: 64px !important;
 }
 
 x-profiling-view > tr-ui-timeline-view {
@@ -65,7 +55,6 @@ x-timeline-view-buttons {
 <template id="profiling-view-template">
   <tr-ui-b-info-bar-group></tr-ui-b-info-bar-group>
   <x-timeline-view-buttons>
-    <button id="record-button">Record</button>
     <button id="save-button">Save</button>
     <button id="load-button">Load</button>
   </x-timeline-view-buttons>
@@ -104,7 +93,7 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
   ProfilingView.prototype = {
     __proto__: HTMLDivElement.prototype,
 
-    decorate(tracingControllerClient) {
+    decorate() {
       Polymer.dom(this).appendChild(
           tr.ui.b.instantiateTemplate('#profiling-view-template', THIS_DOC));
 
@@ -116,7 +105,6 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
       // Detach the buttons. We will reattach them to the timeline view.
       // TODO(nduca): Make timeline-view have a content select="x-buttons"
       // that pulls in any buttons.
-      this.recordButton_ = Polymer.dom(this).querySelector('#record-button');
       this.loadButton_ = Polymer.dom(this).querySelector('#load-button');
       this.saveButton_ = Polymer.dom(this).querySelector('#save-button');
 
@@ -126,83 +114,15 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
       Polymer.dom(this.timelineView_.leftControls).appendChild(buttons);
       this.initButtons_();
 
-      this.timelineView_.hotkeyController.addHotKey(new tr.ui.b.HotKey({
-        eventType: 'keypress',
-        keyCode: 'r'.charCodeAt(0),
-        callback(e) {
-          this.beginRecording();
-          event.stopPropagation();
-        },
-        thisArg: this
-      }));
-
       this.initDragAndDrop_();
 
-      if (tracingControllerClient) {
-        this.tracingControllerClient_ = tracingControllerClient;
-      } else if (window.DevToolsHost !== undefined) {
-        this.tracingControllerClient_ =
-            new tr.ui.e.about_tracing.InspectorTracingControllerClient(
-                new tr.ui.e.about_tracing.InspectorConnection(window));
-      } else {
-        this.tracingControllerClient_ =
-            new tr.ui.e.about_tracing.XhrBasedTracingControllerClient();
-      }
-
-      this.isRecording_ = false;
       this.activeTrace_ = undefined;
-
-      this.updateTracingControllerSpecificState_();
     },
 
     // Detach all document event listeners. Without this the tests can get
     // confused as the element may still be listening when the next test runs.
     detach_() {
       this.detachDragAndDrop_();
-    },
-
-    get isRecording() {
-      return this.isRecording_;
-    },
-
-    set tracingControllerClient(tracingControllerClient) {
-      this.tracingControllerClient_ = tracingControllerClient;
-      this.updateTracingControllerSpecificState_();
-    },
-
-    updateTracingControllerSpecificState_() {
-      const isInspector = this.tracingControllerClient_ instanceof
-          tr.ui.e.about_tracing.InspectorTracingControllerClient;
-
-      if (isInspector) {
-        this.infoBarGroup_.addMessage(
-            'This about:tracing is connected to a remote device...',
-            [{buttonText: 'Wow!', onClick() {}}]);
-      }
-    },
-
-    beginRecording() {
-      if (this.isRecording_) {
-        throw new Error('Already recording');
-      }
-      this.isRecording_ = true;
-      const resultPromise = tr.ui.e.about_tracing.beginRecording(
-          this.tracingControllerClient_);
-      resultPromise.then(
-          function(data) {
-            this.isRecording_ = false;
-            const traceName = tr.ui.e.about_tracing.defaultTraceName(
-                this.tracingControllerClient_);
-            this.setActiveTrace(traceName, data);
-          }.bind(this),
-          function(err) {
-            this.isRecording_ = false;
-            if (err instanceof tr.ui.e.about_tracing.UserCancelledError) {
-              return;
-            }
-            tr.ui.b.Overlay.showError('Error while recording', err);
-          }.bind(this));
-      return resultPromise;
     },
 
     get timelineView() {
@@ -228,7 +148,6 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
       };
 
       this.infoBarGroup_.clearMessages();
-      this.updateTracingControllerSpecificState_();
       this.saveButton_.disabled = false;
       this.timelineView_.viewTitle = filename;
 
@@ -304,12 +223,6 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
     },
 
     initButtons_() {
-      this.recordButton_.addEventListener(
-          'click', function(event) {
-            event.stopPropagation();
-            this.beginRecording();
-          }.bind(this));
-
       this.loadButton_.addEventListener(
           'click', function(event) {
             event.stopPropagation();
