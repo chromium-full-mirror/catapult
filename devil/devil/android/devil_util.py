@@ -17,6 +17,7 @@ import threading
 from devil import devil_env
 from devil.android import device_errors
 from devil.android import device_temp_file
+from devil.android.sdk import adb_wrapper
 from devil.utils import cmd_helper
 
 DEVICE_BIN_PATH = '/data/local/tmp/devil_util_bin'
@@ -203,7 +204,7 @@ def _RunDevilUtilOnDevice(devil_util_cmd, device, large_output=False):
                                   check_return=True,
                                   as_root=True,
                                   large_output=large_output,
-                                  timeout=120)
+                                  timeout=adb_wrapper.DEFAULT_LONG_TIMEOUT)
 
   try:
     out = attempt_command()
@@ -246,6 +247,7 @@ def CalculateDeviceHashes(paths, device):
 
   Args:
     paths: A list of device paths to pass to devil_util.
+    device: The device to run on.
   Returns:
     A dict mapping file paths to their respective devil_util checksums.
     Missing files exist in the dict, but have '' as values.
@@ -278,6 +280,7 @@ def ExtractZstCompressedArchive(archive_path, device):
 
   Args:
     archive_path: The path to the zst-compressed archive file on the device.
+    device: The device to run on.
   """
   devil_util_cmd = '$a extract %s' % archive_path
   _RunDevilUtilOnDevice(devil_util_cmd, device)
@@ -288,6 +291,7 @@ def CreateNamedPipe(named_pipe_path, device):
 
   Args:
     named_pipe_path: The path to the named pipe that will be created.
+    device: The device to run on.
   """
   devil_util_cmd = '$a pipe %s' % named_pipe_path
   _RunDevilUtilOnDevice(devil_util_cmd, device)

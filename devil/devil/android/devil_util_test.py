@@ -21,6 +21,7 @@ except ModuleNotFoundError:
 
 from devil.android import device_errors
 from devil.android import devil_util
+from devil.android.sdk import adb_wrapper
 
 
 
@@ -265,6 +266,26 @@ class DevilUtilDeviceTest(unittest.TestCase):
       device.adb.Push.assert_called_once_with(
           '/mock/path/to/devil_util_dist/devil_util_bin',
           '/data/local/tmp/devil_util_bin')
+
+  def testExtractZstCompressedArchive(self):
+    device = mock.NonCallableMock()
+    device.RunShellCommand = mock.Mock(return_value=[])
+
+    with mock.patch('os.path.getsize', return_value=1337):
+      devil_util.ExtractZstCompressedArchive('/data/local/tmp/test.zst', device)
+      self.assertEqual(1, len(device.RunShellCommand.call_args_list))
+      _, kwargs = device.RunShellCommand.call_args
+      self.assertEqual(adb_wrapper.DEFAULT_LONG_TIMEOUT, kwargs.get('timeout'))
+
+  def testCreateNamedPipe(self):
+    device = mock.NonCallableMock()
+    device.RunShellCommand = mock.Mock(return_value=[])
+
+    with mock.patch('os.path.getsize', return_value=1337):
+      devil_util.CreateNamedPipe('/data/local/tmp/pipe', device)
+      self.assertEqual(1, len(device.RunShellCommand.call_args_list))
+      _, kwargs = device.RunShellCommand.call_args
+      self.assertEqual(adb_wrapper.DEFAULT_LONG_TIMEOUT, kwargs.get('timeout'))
 
 
 if __name__ == '__main__':
