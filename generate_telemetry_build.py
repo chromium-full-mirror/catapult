@@ -67,11 +67,14 @@ SEPARATE_TARGETS = {
 
 def GetUntrackedPaths():
   """Return directories/files in catapult/ that are not tracked by git."""
-  output = subprocess.check_output([
-    'git', 'ls-files', '--others', '--exclude-standard', '--directory',
-    '--full-name'], text=True)
-  paths = output.split('\n')
-  return [os.path.abspath(p) for p in paths if p]
+  try:
+    output = subprocess.check_output([
+      'git', 'ls-files', '--others', '--exclude-standard', '--directory',
+      '--full-name'], text=True, stderr=subprocess.DEVNULL)
+    paths = output.split('\n')
+    return [os.path.abspath(p) for p in paths if p]
+  except (subprocess.SubprocessError, OSError):
+    return []
 
 
 def WriteLists(data, data_deps, build_file, path_prefix):
