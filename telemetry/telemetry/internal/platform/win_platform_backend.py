@@ -6,15 +6,13 @@ from __future__ import division
 from __future__ import absolute_import
 import contextlib
 import ctypes
-import datetime
-import json
 import logging
 import os
 import platform
-import re
 import subprocess
 import sys
-import six
+
+import psutil  # pylint: disable=import-error
 from PIL import ImageGrab  # pylint: disable=import-error
 
 from telemetry.core import exceptions
@@ -48,21 +46,6 @@ except ImportError as e:
   winerror = None
 
 
-_WmicDateRe = re.compile(r'(\d+\.\d+)([+-])(\d+)')
-
-
-def _ParseWmicDate(value):
-  match = _WmicDateRe.fullmatch(value)
-  if not match:
-    raise ValueError(f'Invalid wmic date: {value}')
-  raw_date, tz_sign, tz_minutes_diff = match.groups()
-  date = datetime.datetime.strptime(raw_date, '%Y%m%d%H%M%S.%f')
-  tz_offset = datetime.timedelta(minutes=int(tz_minutes_diff))
-  if tz_sign == '-':
-    tz_offset = -tz_offset
-  return date.replace(tzinfo=datetime.timezone(tz_offset))
-
-
 class WinPlatformBackend(desktop_platform_backend.DesktopPlatformBackend):
   def __init__(self):
     super().__init__()
@@ -90,64 +73,26 @@ class WinPlatformBackend(desktop_platform_backend.DesktopPlatformBackend):
     subprocess.Popen(cmd, stdout=subprocess.PIPE,
                      stderr=subprocess.STDOUT).communicate()
 
-  def _GetSystemProcessInfoUsingWmic(self):
-    # [3:] To skip 2 blank lines and header.
-    lines = six.ensure_str(
-        subprocess.Popen(
-            ['wmic', 'process', 'get',
-             'CommandLine,CreationDate,Name,ParentProcessId,ProcessId',
-             '/format:csv'],
-            stdout=subprocess.PIPE).communicate()[0]
-        ).splitlines()[3:]
-    process_info = []
-    for line in lines:
-      if not line:
-        continue
-      parts = line.split(',')
-      pi = {}
-      pi['ProcessId'] = int(parts[-1])
-      pi['ParentProcessId'] = int(parts[-2])
-      pi['Name'] = parts[-3]
-      creation_date = None
-      if parts[-4]:
-        creation_date = _ParseWmicDate(parts[-4]).timestamp()
-      pi['CreationDate'] = creation_date
-      pi['CommandLine'] = ','.join(parts[1:-4])
-      process_info.append(pi)
-    return process_info
-
-  def _GetSystemProcessInfoUsingPowerShell(self):
-    fields = [
-      'CommandLine',
-      '@{Name="CreationDate";Expression={$_.CreationDate.ToString("o")}}',
-      'Name',
-      'ParentProcessId',
-      'ProcessId',
-    ]
-    raw_process_info = subprocess.check_output(
-      [
-        'powershell',
-        (
-          f'Get-CimInstance Win32_Process | '
-          f'Select-Object {", ".join(fields)} | '
-          f'ConvertTo-Json'
-        ),
-      ],
-      text=True,
-    )
-    process_info = json.loads(raw_process_info)
-    for pi in process_info:
-      pi['CreationDate'] = datetime.datetime.fromisoformat(
-        pi['CreationDate']
-      ).timestamp()
-    return process_info
-
   def GetSystemProcessInfo(self):
-    return (
-      self._GetSystemProcessInfoUsingWmic()
-      if self.GetOSVersionName() < os_version_module.WIN10
-      else self._GetSystemProcessInfoUsingPowerShell()
-    )
+    process_info = []
+    for process in psutil.process_iter(
+        attrs=['pid', 'ppid', 'name', 'create_time', 'cmdline'], ad_value=None):
+      info = process.info
+      cmdline = info['cmdline']
+      process_info.append({
+          'ProcessId':
+              info['pid'],
+          'ParentProcessId':
+              info['ppid'],
+          'Name':
+              info['name'],
+          'CreationDate':
+              info['create_time'],
+          'CommandLine':
+              (subprocess.list2cmdline(cmdline) if cmdline is not None else None
+               ),
+      })
+    return process_info
 
   @decorators.Cache
   def GetPcSystemType(self):

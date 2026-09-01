@@ -10,28 +10,67 @@ from telemetry import decorators
 from telemetry.internal.platform import win_platform_backend
 
 class WinPlatformBackendTest(unittest.TestCase):
+
+  def testGetSystemProcessInfo(self):
+    backend = win_platform_backend.WinPlatformBackend()
+    processes = [
+        mock.Mock(
+            info={
+                'pid':
+                    1,
+                'ppid':
+                    0,
+                'name':
+                    'browser.exe',
+                'create_time':
+                    10.5,
+                'cmdline': [
+                    r'C:\Program Files\Browser\browser.exe',
+                    '--type=renderer',
+                ],
+            }),
+        mock.Mock(
+            info={
+                'pid': 2,
+                'ppid': 1,
+                'name': None,
+                'create_time': None,
+                'cmdline': None,
+            }),
+    ]
+
+    with mock.patch.object(win_platform_backend.psutil,
+                           'process_iter',
+                           return_value=processes) as process_iter:
+      process_info = backend.GetSystemProcessInfo()
+
+    self.assertEqual(process_info, [
+        {
+            'ProcessId':
+                1,
+            'ParentProcessId':
+                0,
+            'Name':
+                'browser.exe',
+            'CreationDate':
+                10.5,
+            'CommandLine':
+                (r'"C:\Program Files\Browser\browser.exe" --type=renderer'),
+        },
+        {
+            'ProcessId': 2,
+            'ParentProcessId': 1,
+            'Name': None,
+            'CreationDate': None,
+            'CommandLine': None,
+        },
+    ])
+    process_iter.assert_called_once_with(
+        attrs=['pid', 'ppid', 'name', 'create_time', 'cmdline'], ad_value=None)
+
   @decorators.Enabled('win')
   def testTypExpectationsTagsForLaptop(self):
     backend = win_platform_backend.WinPlatformBackend()
     with mock.patch.object(backend, 'GetPcSystemType', return_value='2'):
       tags = backend.GetTypExpectationsTags()
       self.assertIn('win-laptop', tags)
-
-  def testParseWmicDate(self):
-    for raw_wmic_date, expected in [
-      ('20260729102234.123456+300', '2026-07-29T10:22:34.123456+05:00'),
-      ('20251210061210.234567-120', '2025-12-10T06:12:10.234567-02:00'),
-      ('20240201170012.345678+0', '2024-02-01T17:00:12.345678+00:00'),
-    ]:
-      with self.subTest(raw_wmic_date=raw_wmic_date):
-        wmic_date = win_platform_backend._ParseWmicDate(raw_wmic_date)
-        self.assertEqual(wmic_date.isoformat(), expected)
-
-  def testParseWmicDateWrongFormat(self):
-    for raw_wmic_date in [
-      '20261529102234.123456+300',
-      'wrong_wmic_date',
-    ]:
-      with self.subTest(raw_wmic_date=raw_wmic_date):
-        with self.assertRaises(ValueError):
-          win_platform_backend._ParseWmicDate(raw_wmic_date)
