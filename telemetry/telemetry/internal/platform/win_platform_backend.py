@@ -38,9 +38,7 @@ except ImportError as e:
   shellcon = None
   win32api = None
   win32con = None
-  win32file = None
   win32gui = None
-  win32pipe = None
   win32process = None
   win32security = None
   winerror = None
