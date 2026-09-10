@@ -547,7 +547,11 @@ found in the LICENSE file.
 
       _computeCombinedBenchmarks: function(testSuites) {
         if (!testSuites) testSuites = [];
-        return testSuites.concat(_CROSSBENCH_LIST)
+        const combined = new Set(testSuites);
+        for (const benchmark of _CROSSBENCH_LIST) {
+          combined.add(benchmark);
+        }
+        return Array.from(combined).sort();
       },
 
       isCrossbenchBenchmark: function(benchmark) {
@@ -877,9 +881,13 @@ found in the LICENSE file.
           return [];
         }
 
+        const seen = new Set();
         const vals = [];
         for (const cur of arr) {
-          vals.push({name: cur});
+          if (!seen.has(cur)) {
+            seen.add(cur);
+            vals.push({name: cur});
+          }
         }
         return vals;
       },
