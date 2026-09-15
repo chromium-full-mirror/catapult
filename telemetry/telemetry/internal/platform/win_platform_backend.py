@@ -23,6 +23,7 @@ from telemetry.internal.platform import desktop_platform_backend
 try:
   import pywintypes  # pylint: disable=import-error
   import win32api  # pylint: disable=import-error
+  import win32com.client as win32com_client  # pylint: disable=import-error
   from win32com.shell import shell  # pylint: disable=no-name-in-module
   from win32com.shell import shellcon  # pylint: disable=no-name-in-module
   import win32con  # pylint: disable=import-error
@@ -94,41 +95,14 @@ class WinPlatformBackend(desktop_platform_backend.DesktopPlatformBackend):
 
   @decorators.Cache
   def GetPcSystemType(self):
-    # WMIC was introduced in Windows 2000, deprecated in Windows 10 21H1 (build
-    # 19043), and removed in Windows 10 22H1. Get-CimInstance is the recommended
-    # replacement, introduced in PowerShell 3.0, together with Windows 8. So to
-    # work with OSes starting from Windows 7, we need to keep them both.
-    # Details about computer system can be found at
-    # https://docs.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystem
-
-    use_powershell = int(platform.version().split('.')[-1]) >= 19043
-
-    if use_powershell:
-      args = ['powershell', 'Get-CimInstance -ClassName Win32_ComputerSystem' \
-              ' | Select-Object -Property PCSystemType']
-    else:
-      args = ['wmic', 'computersystem', 'get', 'pcsystemtype']
-
-    # Retry this up to 3 times. On Windows ARM64 devices, it is unlikely but
-    # possible for the powershell command to hang indefinitely. The
-    # -OperationTimeoutSec argument for the Get-CimInstance command does not
-    # prevent this.
-    lines = []
-    for _ in range(3):
-      try:
-        proc = subprocess.run(
-            args, text=True, timeout=10, check=True, capture_output=True)
-        lines = proc.stdout.split()
-        break
-      except subprocess.CalledProcessError as e:
-        logging.error('Error running %s: %s', args, e)
-      except subprocess.TimeoutExpired as e:
-        logging.error('Timeout running %s: %s', args, e)
-
-    if len(lines) > 1 and lines[0] == 'PCSystemType':
-      if use_powershell:
-        return lines[2]
-      return lines[1]
+    try:
+      wmi = win32com_client.GetObject(r'winmgmts:root\cimv2')
+      for computer_system in wmi.ExecQuery(
+          'SELECT PCSystemType FROM Win32_ComputerSystem'):
+        if computer_system.PCSystemType is not None:
+          return str(computer_system.PCSystemType)
+    except pywintypes.com_error:
+      logging.exception('Error querying PCSystemType')
     return '0'
 
   def IsLaptop(self):
