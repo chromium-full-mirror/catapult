@@ -201,6 +201,8 @@ class GenericChromeBundleBackendSettings(GenericChromeBackendSettings):
     # time like a normal APK.
     return os.path.join('..', 'bin', self.apk_name)
 
+  # TODO(crbug.com/532501271): Investigate. Can the additional apk parameter
+  # go away?
   def FindSupportApks(self, apk_path):
     # Trichrome bundles also require their corresponding library apks to be
     # installed, but the library apks are in the apks directory and the bundles
@@ -375,16 +377,6 @@ ANDROID_WEBVIEW_STANDALONE_64_32_BUNDLE = WebViewBundleBackendSettings(
     browser_type='android-webview-standalone-64-32-bundle',
     apk_name='system_webview_64_32_bundle')
 
-ANDROID_WEBVIEW_TRICHROME = WebViewBackendSettings(
-    apk_name='TrichromeWebView.apk',
-    additional_apk_name='TrichromeLibrary.apk',
-    browser_type='android-webview-trichrome')
-
-ANDROID_WEBVIEW_TRICHROME_BUNDLE = WebViewBackendSettings(
-    apk_name='trichrome_webview_bundle',
-    additional_apk_name='TrichromeLibrary.apk',
-    browser_type='android-webview-trichrome-bundle')
-
 ANDROID_WEBVIEW_GOOGLE = WebViewGoogleBackendSettings(
     browser_type='android-webview-google')
 
@@ -395,16 +387,6 @@ ANDROID_WEBVIEW_STANDALONE_GOOGLE = WebViewBackendSettings(
 ANDROID_WEBVIEW_STANDALONE_GOOGLE_BUNDLE = WebViewBundleBackendSettings(
     browser_type='android-webview-standalone-google-bundle',
     apk_name='system_webview_google_bundle')
-
-ANDROID_WEBVIEW_TRICHROME_GOOGLE = WebViewBackendSettings(
-    apk_name='TrichromeWebViewGoogle.apk',
-    additional_apk_name='TrichromeLibraryGoogle.apk',
-    browser_type='android-webview-trichrome-google')
-
-ANDROID_WEBVIEW_TRICHROME_GOOGLE_BUNDLE = WebViewBundleBackendSettings(
-    apk_name='trichrome_webview_google_bundle',
-    additional_apk_name='TrichromeLibraryGoogle.apk',
-    browser_type='android-webview-trichrome-google-bundle')
 
 ANDROID_WEBVIEW_INSTRUMENTATION = WebViewBasedBackendSettings(
     browser_type='android-webview-instrumentation',
@@ -470,35 +452,6 @@ ANDROID_CHROME_BUNDLE = GenericChromeBundleBackendSettings(
     package='com.google.android.apps.chrome',
     apk_name='chrome_bundle')
 
-ANDROID_TRICHROME_CHROME_BUNDLE = GenericChromeBundleBackendSettings(
-    browser_type='android-trichrome-chrome-bundle',
-    package='org.chromium.chrome',
-    apk_name='trichrome_chrome_bundle',
-    additional_apk_name='TrichromeLibrary.apk')
-
-ANDROID_TRICHROME_CHROME_GOOGLE_BUNDLE = GenericChromeBundleBackendSettings(
-    browser_type='android-trichrome-chrome-google-bundle',
-    package='com.google.android.apps.chrome',
-    apk_name='trichrome_chrome_google_bundle',
-    additional_apk_name='TrichromeLibraryGoogle.apk')
-
-# Prefer the _64_32 target instead of the _64 target, since telemetry is already
-# set up for it (e.g. //tools/perf/chrome_telemetry_build/BUILD.gn). The only
-# difference for these trichrome_chrome_* targets between _64_32 and _64 is an
-# empty stub lib in the library apk.
-ANDROID_TRICHROME_CHROME_64_32_BUNDLE = GenericChromeBundleBackendSettings(
-    browser_type='android-trichrome-chrome-64-32-bundle',
-    package='org.chromium.chrome',
-    apk_name='trichrome_chrome_64_32_bundle',
-    additional_apk_name='TrichromeLibrary6432.apk')
-
-ANDROID_TRICHROME_CHROME_GOOGLE_64_32_BUNDLE = (
-    GenericChromeBundleBackendSettings(
-        browser_type='android-trichrome-chrome-google-64-32-bundle',
-        package='com.google.android.apps.chrome',
-        apk_name='trichrome_chrome_google_64_32_bundle',
-        additional_apk_name='TrichromeLibraryGoogle6432.apk'))
-
 ANDROID_CHROME_BETA = GenericChromeBackendSettings(
     browser_type='android-chrome-beta',
     package='com.chrome.beta')
@@ -525,10 +478,6 @@ ANDROID_BACKEND_SETTINGS = (
     ANDROID_WEBVIEW_STANDALONE_BUNDLE,
     ANDROID_WEBVIEW_STANDALONE_GOOGLE,
     ANDROID_WEBVIEW_STANDALONE_GOOGLE_BUNDLE,
-    ANDROID_WEBVIEW_TRICHROME,
-    ANDROID_WEBVIEW_TRICHROME_BUNDLE,
-    ANDROID_WEBVIEW_TRICHROME_GOOGLE,
-    ANDROID_WEBVIEW_TRICHROME_GOOGLE_BUNDLE,
     ANDROID_CHROMIUM,
     ANDROID_CHROMIUM_BUNDLE,
     ANDROID_CHROMIUM_BETA,
@@ -539,10 +488,6 @@ ANDROID_BACKEND_SETTINGS = (
     ANDROID_CHROMIUM_BUNDLE_DEV,
     ANDROID_CHROME,
     ANDROID_CHROME_BUNDLE,
-    ANDROID_TRICHROME_CHROME_BUNDLE,
-    ANDROID_TRICHROME_CHROME_GOOGLE_BUNDLE,
-    ANDROID_TRICHROME_CHROME_64_32_BUNDLE,
-    ANDROID_TRICHROME_CHROME_GOOGLE_64_32_BUNDLE,
     ANDROID_CHROME_BETA,
     ANDROID_CHROME_DEV,
     ANDROID_CHROME_CANARY,

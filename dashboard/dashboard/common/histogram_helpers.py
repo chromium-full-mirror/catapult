@@ -57,6 +57,8 @@ _BENCHMARKS_WITH_SYNTHETIC_STATISTICS = [
     'resource_sizes (CronetSample.apk)',
     'resource_sizes (Monochrome.minimal.apks)',
     'resource_sizes (SystemWebViewGoogle.minimal.apks)',
+    # TODO(crbug.com/532501271): Revisit once binary size measurements have been
+    # switched to standalone chrome. Monochrome above can also go away.
     'resource_sizes (TrichromeGoogle)',
     'sizes',
     'speedometer3-no-field-trials',

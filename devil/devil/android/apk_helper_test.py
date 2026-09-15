@@ -139,6 +139,7 @@ _NO_NAMESPACE_MANIFEST_DUMP = """E: manifest (line=1)
     A: http://schemas.android.com/apk/res/android:targetPackage(0x01010021)="org.chromium.random_package" (Raw:"org.chromium.random_pacakge")
 """
 
+# TODO(crbug.com/532501271): Remove trichromelibrary usage.
 _STATIC_LIBRARY_DUMP = """N: android=http://schemas.android.com/apk/res/android
   E: manifest (line=1)
     A: android:versionCode(0x0101021b)=(type 0x10)0x210cffc7

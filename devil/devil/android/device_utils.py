@@ -313,6 +313,7 @@ _GOOGLE_FEATURES_RE = re.compile(r'^\s*com\.google\.')
 # On Android >= 15, "ro.product.device" starts with "vsoc"
 _EMULATOR_RE = re.compile(r'^(generic_|emulator64_|emu64x|vsoc_).*$')
 
+# TODO(crbug.com/532501271): Remove trichromelibrary usage.
 # Regular expressions for determining if a package is installed using the
 # output of `dumpsys package`.
 # Matches lines like "Package [com.google.android.youtube] (c491050):".
