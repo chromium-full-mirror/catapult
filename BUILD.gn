@@ -25,6 +25,8 @@ group("telemetry_chrome_test_support") {
     "codereview.settings",
     "navbar.md",
     "pylintrc",
+    "vpython.toml",
+    "vpython.toml.uv.lock",
     "bin/",
     "catapult_build/",
     "dashboard/",
