@@ -65,6 +65,10 @@ found in the LICENSE file.
       runTestCase(painterTestCheckedCert());
       runTestCase(painterTestProxyConfigOneProxyAllSchemes());
       runTestCase(painterTestProxyConfigTwoProxiesAllSchemes());
+      runTestCase(painterTestProxyConfigDynamicRoutingOnly());
+      runTestCase(painterTestProxyConfigDynamicRoutingWithOverrideAndManual());
+      runTestCase(painterTestProxyConfigDynamicRoutingUpdateInProgress());
+      runTestCase(painterTestProxyConfigDynamicRoutingMultiProxy());
       runTestCase(painterTestExtraCustomParameter());
       runTestCase(painterTestMissingCustomParameter());
       runTestCase(painterTestInProgressURLRequest());
@@ -1512,6 +1516,166 @@ QuicError.QUIC_NETWORK_IDLE_TIMEOUT + ' (QUIC_NETWORK_IDLE_TIMEOUT)';
 '                               Source: SYSTEM';
 
     return testCase;
+  }
+
+  /**
+   * Builds a PROXY_CONFIG_CHANGED test case whose |new_config| is
+   * |newConfig|, with no |old_config|.
+   */
+  function makeProxyConfigTestCase(newConfig, expectedConfigLines) {
+    const testCase = {};
+    testCase.tickOffset = 1337911098481;
+
+    testCase.logEntries = [{
+      'params': {'new_config': newConfig},
+      'phase': EventPhase.PHASE_NONE,
+      'source': {'id': 814, 'type': EventSourceType.NONE},
+      'time': '954443578',
+      'type': EventType.PROXY_CONFIG_CHANGED
+    }];
+
+    const prefix = '                               ';
+    testCase.expectedText =
+        't=1338865542059 [st=0]  PROXY_CONFIG_CHANGED\n' +
+        '                        --> new_config =\n' +
+        expectedConfigLines.map(line => prefix + line).join('\n');
+
+    return testCase;
+  }
+
+  /**
+   * Tests the formatting of a proxy configuration that only contains dynamic
+   * routing rules. Being the sole mode, it should not be numbered.
+   */
+  function painterTestProxyConfigDynamicRoutingOnly() {
+    return makeProxyConfigTestCase(
+        {
+          'dynamic_routing_config': {
+            'routing_rules': [{
+              'destination_matchers': 'example.test;',
+              'proxy_list': ['https://proxy.test:443']
+            }]
+          }
+        },
+        [
+          'Dynamic routing:',
+          '{',
+          '  "routing_rules": [',
+          '    {',
+          '      "destination_matchers": "example.test;",',
+          '      "proxy_list": [',
+          '        "https://proxy.test:443"',
+          '      ]',
+          '    }',
+          '  ]',
+          '}'
+        ]);
+  }
+
+  /**
+   * Tests that dynamic routing rules are ordered after the override rules but
+   * before the automatic and manual settings, and that the fallback numbering
+   * reflects that.
+   */
+  function painterTestProxyConfigDynamicRoutingWithOverrideAndManual() {
+    return makeProxyConfigTestCase(
+        {
+          'override_rules': [{
+            'destination_matchers': 'override.test;',
+            'dns_conditions': [],
+            'proxy_list': ['direct://']
+          }],
+          'dynamic_routing_config': {
+            'routing_rules': [{
+              'destination_matchers': 'example.test;',
+              'proxy_list': ['https://proxy.test:443']
+            }]
+          },
+          'auto_detect': true,
+          'single_proxy': ['cache-proxy:3128'],
+          'source': 'SYSTEM'
+        },
+        [
+          '(1) Override rules:',
+          '    [',
+          '      {',
+          '        "destination_matchers": "override.test;",',
+          '        "dns_conditions": [],',
+          '        "proxy_list": [',
+          '          "direct://"',
+          '        ]',
+          '      }',
+          '    ]',
+          '(2) Dynamic routing:',
+          '    {',
+          '      "routing_rules": [',
+          '        {',
+          '          "destination_matchers": "example.test;",',
+          '          "proxy_list": [',
+          '            "https://proxy.test:443"',
+          '          ]',
+          '        }',
+          '      ]',
+          '    }',
+          '(3) Auto-detect',
+          '(4) Proxy server: cache-proxy:3128',
+          'Source: SYSTEM'
+        ]);
+  }
+
+  /**
+   * Tests that a dynamic routing update that is still in progress is rendered
+   * even though it carries no rules yet. Such a config must not be reported as
+   * "Use DIRECT connections.", since proxy resolution is stalled while the
+   * update is outstanding.
+   */
+  function painterTestProxyConfigDynamicRoutingUpdateInProgress() {
+    return makeProxyConfigTestCase(
+        {
+          'dynamic_routing_config': {
+            'is_update_in_progress': true,
+            'routing_rules': []
+          }
+        },
+        [
+          'Dynamic routing:',
+          '{',
+          '  "is_update_in_progress": true,',
+          '  "routing_rules": []',
+          '}'
+        ]);
+  }
+
+  /**
+   * Tests that a multi-proxy dynamic routing rule stays correctly indented,
+   * including the direct:// entry.
+   */
+  function painterTestProxyConfigDynamicRoutingMultiProxy() {
+    return makeProxyConfigTestCase(
+        {
+          'dynamic_routing_config': {
+            'routing_rules': [{
+              'destination_matchers': 'example.test;*.foo.test;',
+              'proxy_list': ['https://proxy.test:443', 'direct://']
+            }]
+          },
+          'auto_detect': true
+        },
+        [
+          '(1) Dynamic routing:',
+          '    {',
+          '      "routing_rules": [',
+          '        {',
+          '          "destination_matchers": "example.test;*.foo.test;",',
+          '          "proxy_list": [',
+          '            "https://proxy.test:443",',
+          '            "direct://"',
+          '          ]',
+          '        }',
+          '      ]',
+          '    }',
+          '(2) Auto-detect'
+        ]);
   }
 
   /**

@@ -790,6 +790,14 @@ let proxySettingsToString;
         ...JSON.stringify(config.override_rules, null, 2).split('\n')]);
     }
 
+    // Output dynamic routing config. These rules are evaluated after the
+    // override rules, but before the automatic and manual settings.
+    if (config.dynamic_routing_config) {
+      modes.push([
+        'Dynamic routing:',
+        ...JSON.stringify(config.dynamic_routing_config, null, 2).split('\n')]);
+    }
+
     // Output any automatic settings.
     if (config.auto_detect) {
       modes.push(['Auto-detect']);
