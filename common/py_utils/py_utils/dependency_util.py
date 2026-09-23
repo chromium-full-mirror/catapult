@@ -36,8 +36,8 @@ def GetArchForCurrentDesktopPlatform(os_name):
 
 def GetChromeApkOsVersion(version_name):
   version = version_name[0]
-  assert version.isupper(), (
-      'First character of versions name %s was not an uppercase letter.')
+  assert version.isupper(), ('First character of versions name {} '
+                             'was not an uppercase letter.'.format(version))
   if version < 'L':
     return 'k'
   if version > 'M':
