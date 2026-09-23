@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 """Tests for the cmd_helper module."""
 
+import copy
 import unittest
 import subprocess
 import sys
@@ -125,8 +126,7 @@ class _MockProcess(object):
     # os.read is a special case, though, where we only return a given chunk
     # of data *once* after a given call to select.
 
-    if not output_sequence:
-      output_sequence = []
+    output_sequence = copy.deepcopy(output_sequence or [])
 
     # Use an leading element to make the iteration logic work.
     initial_seq_element = _ProcessOutputEvent(
@@ -211,6 +211,24 @@ class CmdHelperIterCmdOutputLinesTest(unittest.TestCase):
       for num, line in enumerate(
           cmd_helper._IterCmdOutputLines(mock_proc, 'mock_proc'), 1):
         self.assertEqual(num, int(line))
+
+  def testIterCmdOutputLines_reusedOutputSequence(self):
+    event = _ProcessOutputEvent(read_contents=b'1\n2\n')
+    output_sequence = [event]
+    for return_value in (0, 1):
+      with self.subTest(return_value=return_value):
+        with _MockProcess(output_sequence=output_sequence,
+                          return_value=return_value) as mock_proc:
+          lines = list(
+              cmd_helper._IterCmdOutputLines(mock_proc,
+                                             'mock_proc',
+                                             check_status=False))
+          self.assertEqual(['1', '2'], lines)
+          self.assertEqual(return_value, mock_proc.returncode)
+        self.assertEqual([event], output_sequence)
+        self.assertEqual(_DEFAULT, event.select_fds)
+        self.assertEqual(_DEFAULT, event.ts)
+        self.assertEqual(b'1\n2\n', event.read_contents)
 
   def testIterCmdOutputLines_unicode(self):
     output_sequence = [
