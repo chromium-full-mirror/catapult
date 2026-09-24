@@ -107,6 +107,8 @@ _CROSSBENCH_NAME = {
     'webai.crossbench': 'webai',
     # devtools_frontend.crossbench
     'devtools_frontend.crossbench': 'devtools_frontend',
+    # Web Power
+    'web_power.crossbench': 'web-power',
 }
 
 # These hardcoded args are only used while running benchmarks before commit
@@ -269,10 +271,44 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
         execution_timeout_secs=None)
 
   @classmethod
+  def _CrossbenchStoryFilter(cls, benchmark, story):
+    """Translates a dashboard story name into a cb.py --stories value.
+
+    cb.py matches --stories against Benchmark.DEFAULT_STORY_CLS's
+    all_story_names(), which for multi-story benchmarks omits the benchmark
+    name that the story labels on the dashboard carry. For example
+    web_power.crossbench uploads 'web-power-page-load-cnn', while the value
+    cb.py expects is 'page-load-cnn'.
+    """
+    prefix = '%s-' % _CROSSBENCH_NAME[benchmark]
+    if story.startswith(prefix):
+      return story[len(prefix):]
+    return story
+
+  @classmethod
   def _CrossbenchExtraTestArgs(cls, benchmark, arguments):
     extra_test_args = []
     extra_test_args.append(f'--benchmark-display-name={benchmark}')
     extra_test_args.append(f'--benchmarks={_CROSSBENCH_NAME[benchmark]}')
+
+    story = arguments.get('story')
+    if benchmark == 'web_power.crossbench':
+      if not story or story == 'default':
+        raise ValueError(
+            'web_power.crossbench requires a specific story name '
+            '(e.g. "web-power-page-load-cnn"); whole-benchmark runs are not '
+            'supported on Pinpoint.')
+      # CPU frequencies are already pinned by run_performance_tests.py, and
+      # Pinpoint drives statistical repetitions across Swarming tasks (analogous
+      # to --pageset-repeat=1 for Telemetry).
+      extra_test_args.extend(['--cool-down-time=0s', '--repetitions=1'])
+
+    if story and story != 'default':
+      # Without this, Pinpoint runs every story of the benchmark on every
+      # revision it tests, which for web_power.crossbench means hours per
+      # attempt instead of minutes.
+      extra_test_args.append(
+          f'--stories={cls._CrossbenchStoryFilter(benchmark, story)}')
 
     browser = arguments.get('browser')
     if not browser:

@@ -229,3 +229,61 @@ class FromDictTest(unittest.TestCase):
         _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
         'out/Release')
     self.assertEqual(quest, expected)
+
+  def testCrossbenchDefaultStory(self):
+    # Single-story crossbench benchmarks upload their story as 'default'.
+    # Pinpoint must not pass --stories=default because non-SubStoryBenchmark
+    # suites do not register --stories, and Press benchmarks rely on Story:
+    # default while passing --stories=<SubStory> via extra_test_args.
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'speedometer3.crossbench'
+    arguments['story'] = 'default'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=speedometer3.crossbench',
+        '--benchmarks=speedometer_3',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args,
+        {'benchmark': 'speedometer3.crossbench',
+         'hasfilter': '1',
+         'storyfilter': 'default'},
+        _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+
+  def testCrossbenchPrefixedStory(self):
+    # web_power labels its stories '<crossbench benchmark name>-<story>' on
+    # the dashboard; cb.py's --stories wants the unprefixed name.
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'web_power.crossbench'
+    arguments['story'] = 'web-power-page-load-cnn'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=web_power.crossbench',
+        '--benchmarks=web-power',
+        '--cool-down-time=0s',
+        '--repetitions=1',
+        '--stories=page-load-cnn',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args,
+        {'benchmark': 'web_power.crossbench',
+         'hasfilter': '1',
+         'storyfilter': 'web-power-page-load-cnn'},
+        _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+
+  def testCrossbenchWebPowerRequiresSpecificStory(self):
+    for story in (None, '', 'default'):
+      arguments = dict(_BASE_ARGUMENTS)
+      arguments['benchmark'] = 'web_power.crossbench'
+      if story is not None:
+        arguments['story'] = story
+      with self.assertRaises(ValueError):
+        run_telemetry_test.RunTelemetryTest.FromDict(arguments)
