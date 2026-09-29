@@ -50,6 +50,8 @@ OAUTH_CLIENT_ID_ALLOWLIST = [
     '104948706913098690704',
     # mcp-server-perf@skia-infra-corp.iam.gserviceaccount.com
     '110941947140990718675',
+    # This oauth client id is used for leszek-perf / skia-query.
+    '404979445346-jraf8h5mdnutl28n6j67acra6rp7bh5n.apps.googleusercontent.com',
 ]
 if utils.IsStagingEnvironment():
   OAUTH_CLIENT_ID_ALLOWLIST = [
