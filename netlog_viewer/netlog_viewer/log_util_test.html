@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<!--
+Copyright 2026 The Chromium Authors. All rights reserved.
+Use of this source code is governed by a BSD-style license that can be
+found in the LICENSE file.
+-->
+
+<script>
+'use strict';
+
+// Anonymous namespace
+(function() {
+
+// @return {object} A constants object that's just valid enough for
+//     LogUtil.loadLogFile to accept.
+function logDumpConstants() {
+  return {
+    logFormatVersion: 1,
+    timeTickOffset: '1337911098446',
+    clientInfo: {numericDate: 1553022358192},
+    logEventTypes: {REQUEST_ALIVE: 0},
+    logEventPhase: {PHASE_BEGIN: 0, PHASE_END: 1, PHASE_NONE: 2},
+    logSourceType: {NONE: 0, URL_REQUEST: 1, SOCKET: 3},
+    loadFlag: {NORMAL: 0},
+    netError: {ERR_FAILED: -2},
+    addressFamily: {ADDRESS_FAMILY_UNSPECIFIED: 0},
+  };
+}
+
+// @return {object} A valid event, in the same format used by both the
+//     single-JSON-document and NDJSON log formats.
+function logDumpEvent(sourceId, time) {
+  return {
+    phase: 0,  // PHASE_BEGIN
+    source: {id: sourceId, type: 1},  // URL_REQUEST
+    time: String(time),
+    type: 0,  // REQUEST_ALIVE
+  };
+}
+
+// @return {object} Polled data containing just enough SPDY information for
+//     the HTTP/2 view to consider it valid, so tests can check that polled
+//     data was passed through to the views.
+function logDumpPolledData() {
+  return {
+    spdySessionInfo: [],
+    spdyStatus: {enable_http2: true, alpn_protos: 'h2,http/1.1'},
+  };
+}
+
+// Serializes |records| in the NDJSON NetLog format, one record per line.
+function makeNdjsonLog(records) {
+  return records.map(record => JSON.stringify(record)).join('\n') + '\n';
+}
+
+// Undoes the global state changes made by loading a log, so tests that run
+// later (in this suite and others) start from the same state.
+function resetViewerState() {
+  // Make sure the constants globals are set before clearing log entries, as
+  // observers such as TimelineView read EventType during deleteAllLogEntries().
+  setNetLogConstantsForTest();
+  EventsTracker.getInstance().deleteAllLogEntries();
+  const tabSwitcher = MainView.getInstance().tabSwitcher();
+  const tabIdToView = tabSwitcher.getAllTabViews();
+  for (const tabId in tabIdToView) {
+    tabSwitcher.showTabLink(tabId, tabId === ImportView.TAB_ID);
+  }
+  unsetNetLogConstantsForTest();
+}
+
+tr.b.unittest.testSuite(function() {
+  // Runs |testBody| with the viewer set up, and restores global viewer state
+  // afterwards, even on failure.
+  function runViewerTest(testCase, testBody) {
+    testCase.addHTMLOutput(globalNetLogViewerElementForTests);
+    MainView.getInstance();
+    try {
+      testBody();
+    } finally {
+      resetViewerState();
+    }
+  }
+
+  /**
+   * Loads a complete NDJSON log with events and polled data.
+   */
+  test('netInternalsLogUtilNDJSONLoad', function() {
+    runViewerTest(this, function() {
+      const logText = makeNdjsonLog([
+        {type: 'constants', constants: logDumpConstants()},
+        {type: 'event', event: logDumpEvent(1, 953534778)},
+        {type: 'event', event: logDumpEvent(2, 953534792)},
+        {type: 'event', event: logDumpEvent(3, 953534800)},
+        {type: 'polledData', polledData: logDumpPolledData()},
+        {type: 'end'},
+      ]);
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'), 'Log loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 3);
+      chai.assert.isTrue(NetInternalsTest.tabLinkIsVisible(SpdyView.TAB_ID));
+    });
+  });
+
+  /**
+   * Loads an NDJSON log without a polledData record.  This is a cleanly
+   * stopped log (it has an end record), so no truncation warning is expected.
+   */
+  test('netInternalsLogUtilNDJSONLoadNoPolledData', function() {
+    runViewerTest(this, function() {
+      const logText = makeNdjsonLog([
+        {type: 'constants', constants: logDumpConstants()},
+        {type: 'event', event: logDumpEvent(1, 953534778)},
+        {type: 'event', event: logDumpEvent(2, 953534792)},
+        {type: 'end'},
+      ]);
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'), 'Log loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 2);
+      chai.assert.isFalse(NetInternalsTest.tabLinkIsVisible(SpdyView.TAB_ID));
+    });
+  });
+
+  /**
+   * Loads NDJSON logs with no end record (both with all lines complete and
+   * with the last line cut off mid-record, as happens when the browser crashes
+   * while logging).  All complete lines should be loaded, along with a
+   * truncation warning.
+   */
+  test('netInternalsLogUtilNDJSONLoadTruncated', function() {
+    runViewerTest(this, function() {
+      let logText = makeNdjsonLog([
+        {type: 'constants', constants: logDumpConstants()},
+        {type: 'event', event: logDumpEvent(1, 953534778)},
+        {type: 'event', event: logDumpEvent(2, 953534792)},
+      ]);
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'),
+          'Log file truncated.  Events may be missing.\nLog loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 2);
+
+      // Cut off the middle of the last event line.
+      logText = logText.substring(0, logText.length - 15);
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'),
+          'Log file truncated.  Events may be missing.\nLog loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 1);
+    });
+  });
+
+  /**
+   * Loads an NDJSON log containing an unknown record type and a blank line.
+   * Both should be ignored.
+   */
+  test('netInternalsLogUtilNDJSONLoadUnknownRecordType', function() {
+    runViewerTest(this, function() {
+      const logText =
+          JSON.stringify({type: 'constants', constants: logDumpConstants()}) +
+          '\n' +
+          JSON.stringify({type: 'event', event: logDumpEvent(1, 953534778)}) +
+          '\n' +
+          '\n' +  // Blank lines are ignored.
+          JSON.stringify({type: 'someFutureRecordType', someData: {a: 1}}) +
+          '\n' +
+          JSON.stringify({type: 'event', event: logDumpEvent(2, 953534792)}) +
+          '\n' +
+          JSON.stringify({type: 'end'}) + '\n';
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'), 'Log loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 2);
+    });
+  });
+
+  /**
+   * Attempts to load an NDJSON log that has no constants record.  This should
+   * fail with the same error as the single-JSON-document format.
+   */
+  test('netInternalsLogUtilNDJSONLoadMissingConstants', function() {
+    runViewerTest(this, function() {
+      const logText = makeNdjsonLog([
+        {type: 'event', event: logDumpEvent(1, 953534778)},
+        {type: 'end'},
+      ]);
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'),
+          'Load failed:\n\nInvalid constants object.\n');
+    });
+  });
+
+  /**
+   * Loads a log in the single-JSON-document format, to check that NDJSON
+   * support doesn't interfere with it.
+   */
+  test('netInternalsLogUtilJSONLoad', function() {
+    runViewerTest(this, function() {
+      const logText = JSON.stringify({
+        constants: logDumpConstants(),
+        events: [logDumpEvent(1, 953534778), logDumpEvent(2, 953534792)],
+        polledData: logDumpPolledData(),
+      });
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'), 'Log loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 2);
+      chai.assert.isTrue(NetInternalsTest.tabLinkIsVisible(SpdyView.TAB_ID));
+    });
+  });
+
+  /**
+   * Loads a truncated log in the single-JSON-document format, as written by
+   * --log-net-log when the browser crashes.  The existing recovery path
+   * should still handle it.
+   */
+  test('netInternalsLogUtilJSONLoadTruncated', function() {
+    runViewerTest(this, function() {
+      const logText =
+          '{"constants":' + JSON.stringify(logDumpConstants()) + ',\n' +
+          '"events": [\n' +
+          JSON.stringify(logDumpEvent(1, 953534778)) + ',\n' +
+          JSON.stringify(logDumpEvent(2, 953534792)) + ',\n' +
+          '{"phase":0,"source":{"id":3,';  // Cut off mid-event.
+
+      chai.assert.strictEqual(
+          LogUtil.loadLogFile(logText, 'log.json'),
+          'Log file truncated.  Events may be missing.\nLog loaded.');
+      chai.assert.strictEqual(
+          EventsTracker.getInstance().getNumCapturedEvents(), 2);
+    });
+  });
+});
+
+})();  // Anonymous namespace
+</script>

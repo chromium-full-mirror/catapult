@@ -1,13 +1,12 @@
 // Copyright (c) 2012 The Chromium Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
+'use strict';
 
 /**
  * This view displays options for importing data from a log file.
  */
 var ImportView = (function() {
-  'use strict';
-
   // We inherit from DivView.
   var superClass = DivView;
 
@@ -215,15 +214,18 @@ var ImportView = (function() {
     },
 
     /**
-     * Opens a ZIP and finds the first *.json file within, then attempts to
-     * decompress the JSON content and parse it as a netlog.
+     * Opens a ZIP and finds the first *.json, *.jsonl, or *.ndjson file within,
+     * then attempts to decompress the JSON content and parse it as a netlog.
      */
     onLoadZip(logFile, data) {
       const zip = new JSZip();
       zip.loadAsync(data.target.result)
           .then(zip => {
             for (const filename in zip.files) {
-              if (!filename.toLowerCase().endsWith('.json')) {
+              const lowerFilename = filename.toLowerCase();
+              if (!lowerFilename.endsWith('.json') &&
+                  !lowerFilename.endsWith('.jsonl') &&
+                  !lowerFilename.endsWith('.ndjson')) {
                 console.log('Netlog Import skipping: ' + filename);
                 continue;
               }

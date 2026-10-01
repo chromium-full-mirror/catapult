@@ -1,9 +1,10 @@
+<!DOCTYPE html>
 <dom-module id="import-view">
   <template>
     <div id=import-view-tab-content class=content-box>
       <div>
         <div style='margin-bottom:20px'><b>TIP</b>: Drag-and-drop a netlog file into this window.</div>
-          <input type=file id=import-view-load-log-file accept=".json,.zip">
+          <input type=file id=import-view-load-log-file accept=".json,.jsonl,.ndjson,.zip">
           <pre id=import-view-load-status-text></pre>
       </div>
 
@@ -64,6 +65,7 @@
     </div>
   </template>
   <script>
+    'use strict';
     Polymer({
       is: 'import-view',
     });

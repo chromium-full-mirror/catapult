@@ -187,11 +187,120 @@ const LogUtil = (function() {
   }
 
   /**
+   * Attempts to parse |logFileContents| as an NDJSON NetLog dump, as written
+   * by --net-log-file-format=ndjson.  Such logs contain one JSON record per
+   * line, each identified by a "type" field:
+   *
+   *   {"type":"constants","constants":{...}}   (always the first line)
+   *   {"type":"event","event":{...}}
+   *   {"type":"polledData","polledData":{...}} (only on clean shutdown)
+   *   {"type":"end"}                           (only on clean shutdown)
+   *
+   * The values of the constants/event/polledData records use the same
+   * structure as the corresponding parts of the single-JSON-document format.
+   *
+   * Returns null if |logFileContents| is not an NDJSON log.  Otherwise,
+   * returns an object with a |logDump| in the same form as the
+   * single-JSON-document format, and an |errorString| containing any
+   * warnings.
+   */
+  function parseNdjsonDump_(logFileContents) {
+    const logDump = {events: []};
+    let sawFirstRecord = false;
+    let sawEndRecord = false;
+
+    for (let lineStart = 0; lineStart < logFileContents.length;) {
+      let lineEnd = logFileContents.indexOf('\n', lineStart);
+      if (lineEnd === -1) {
+        lineEnd = logFileContents.length;
+      }
+      const line = logFileContents.substring(lineStart, lineEnd).trim();
+      lineStart = lineEnd + 1;
+      if (line === '') {
+        continue;
+      }
+
+      let record = null;
+      try {
+        record = JSON.parse(line);
+      } catch (error) {
+        // If the very first line isn't a JSON record, this isn't an NDJSON
+        // log at all.
+        if (!sawFirstRecord) {
+          return null;
+        }
+        // Otherwise the log was likely truncated mid-record (e.g. the browser
+        // crashed).  Skip the incomplete line and stop; the missing end
+        // record will add a truncation warning below.
+        break;
+      }
+
+      if (typeof record !== 'object' || record === null ||
+          typeof record.type !== 'string') {
+        // NDJSON logs are identified by their first record having a "type"
+        // field.  Anything else (e.g. a whole single-document dump on one
+        // line) is some other format.
+        if (!sawFirstRecord) {
+          return null;
+        }
+        continue;
+      }
+      sawFirstRecord = true;
+
+      switch (record.type) {
+        case 'constants':
+          if (logDump.constants === undefined &&
+              typeof record.constants === 'object' &&
+              record.constants !== null) {
+            logDump.constants = record.constants;
+          }
+          break;
+        case 'event':
+          logDump.events.push(
+              record.event !== null ? record.event : undefined);
+          break;
+        case 'polledData':
+          if (typeof record.polledData === 'object' &&
+              record.polledData !== null) {
+            logDump.polledData = record.polledData;
+          }
+          break;
+        case 'end':
+          sawEndRecord = true;
+          break;
+        default:
+          // Ignore unknown record types, for forward compatibility.
+          break;
+      }
+    }
+
+    if (!sawFirstRecord) {
+      return null;
+    }
+
+    let errorString = '';
+    if (!sawEndRecord) {
+      // A cleanly written NDJSON log always ends with an end record.
+      errorString += 'Log file truncated.  Events may be missing.\n';
+    }
+    return {logDump, errorString};
+  }
+
+  /**
    * Loads a log dump from the string |logFileContents|, which can be either a
    * full net-internals dump, or a NetLog dump only.  Returns a string
    * containing a log of the load.
    */
   function loadLogFile(logFileContents, fileName) {
+    // NDJSON logs can't be parsed as a single JSON document, so try them
+    // first.  This only looks at the first line, and leaves the other formats
+    // to the code below.
+    const ndjsonDump = parseNdjsonDump_(logFileContents);
+    if (ndjsonDump !== null) {
+      return ndjsonDump.errorString +
+          loadLogDump(ndjsonDump.logDump, fileName);
+    }
+
     // Try and parse the log dump as a single JSON string.  If this succeeds,
     // it's most likely a full log dump.  Otherwise, it may be a dump created by
     // --log-net-log.
