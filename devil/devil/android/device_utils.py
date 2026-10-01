@@ -1479,7 +1479,8 @@ class DeviceUtils(object):
                             permissions=permissions,
                             instant_app=instant_app,
                             force_queryable=force_queryable,
-                            streaming=streaming)
+                            streaming=streaming,
+                            timeout=timeout)
 
   @decorators.WithTimeoutAndRetriesFromInstance(
       min_default_timeout=INSTALL_DEFAULT_TIMEOUT)
@@ -1677,7 +1678,8 @@ class DeviceUtils(object):
                             allow_downgrade=allow_downgrade,
                             instant_app=instant_app,
                             force_queryable=force_queryable,
-                            streaming=streaming)
+                            streaming=streaming,
+                            timeout=timeout)
 
   def _InstallInternal(self,
                        apk,
@@ -1687,7 +1689,8 @@ class DeviceUtils(object):
                        permissions=None,
                        instant_app=False,
                        force_queryable=False,
-                       streaming=None):
+                       streaming=None,
+                       timeout=None):
     if not apk_paths:
       raise device_errors.CommandFailedError('Did not get any APKs to install')
 
@@ -1756,14 +1759,16 @@ class DeviceUtils(object):
                                    streaming=streaming,
                                    allow_downgrade=allow_downgrade,
                                    instant_app=instant_app,
-                                   force_queryable=force_queryable)
+                                   force_queryable=force_queryable,
+                                   timeout=timeout)
         else:
           self.adb.Install(apks_to_install[0],
                            reinstall=reinstall,
                            streaming=streaming,
                            allow_downgrade=allow_downgrade,
                            instant_app=instant_app,
-                           force_queryable=force_queryable)
+                           force_queryable=force_queryable,
+                           timeout=timeout)
 
       # Upon success, we know the device checksums.
       # We do not know the path, as the /data/app/ directory might change.
