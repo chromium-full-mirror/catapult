@@ -298,10 +298,9 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
             'web_power.crossbench requires a specific story name '
             '(e.g. "web-power-page-load-cnn"); whole-benchmark runs are not '
             'supported on Pinpoint.')
-      # CPU frequencies are already pinned by run_performance_tests.py, and
       # Pinpoint drives statistical repetitions across Swarming tasks (analogous
       # to --pageset-repeat=1 for Telemetry).
-      extra_test_args.extend(['--cool-down-time=0s', '--repetitions=1'])
+      extra_test_args.append('--repetitions=1')
 
     if story and story != 'default':
       # Without this, Pinpoint runs every story of the benchmark on every

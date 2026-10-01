@@ -265,7 +265,6 @@ class FromDictTest(unittest.TestCase):
     extra_args = [
         '--benchmark-display-name=web_power.crossbench',
         '--benchmarks=web-power',
-        '--cool-down-time=0s',
         '--repetitions=1',
         '--stories=page-load-cnn',
         '--browser=release',
