@@ -6,6 +6,7 @@ from __future__ import absolute_import
 import logging
 import six
 
+import py_utils
 from py_utils import cloud_storage
 from py_utils import exc_util
 
@@ -81,15 +82,22 @@ class Browser(app.App):
 
   @property
   def foreground_tab(self):
-    for tab in self._tabs:
-      # The foreground tab is the first (only) one that isn't hidden.
-      # This only works through luck on Android, due to crbug.com/322544
-      # which means that tabs that have never been in the foreground return
-      # document.hidden as false; however in current code the Android foreground
-      # tab is always tab 0, which will be the first one that isn't hidden
-      if tab.EvaluateJavaScript('!document.hidden'):
-        return tab
-    raise exceptions.TabMissingError("No foreground tab found")
+    def _GetForegroundTab():
+      for tab in self._tabs:
+        # The foreground tab is the first (only) one that isn't hidden.
+        # This only works through luck on Android, due to crbug.com/322544
+        # which means that tabs that have never been in the foreground return
+        # document.hidden as false; however in current code the Android
+        # foreground tab is always tab 0, which will be the first one that
+        # isn't hidden
+        if tab.EvaluateJavaScript('!document.hidden'):
+          return tab
+      return None
+
+    try:
+      return py_utils.WaitFor(_GetForegroundTab, timeout=5)
+    except py_utils.TimeoutException as e:
+      six.raise_from(exceptions.TabMissingError("No foreground tab found"), e)
 
   @property
   @decorators.Cache

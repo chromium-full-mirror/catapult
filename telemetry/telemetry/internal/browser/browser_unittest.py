@@ -11,6 +11,7 @@ import unittest
 from unittest import mock
 
 from telemetry import decorators
+from telemetry.core import exceptions
 from telemetry.internal.browser import browser as browser_module
 from telemetry.internal.browser import browser_finder
 from telemetry.internal.platform import gpu_device
@@ -20,6 +21,7 @@ from telemetry.testing import browser_test_case
 from telemetry.testing import options_for_unittests
 
 from devil.android import app_ui
+import py_utils
 
 
 class IntentionalException(Exception):
@@ -211,6 +213,32 @@ class BrowserCreationTest(unittest.TestCase):
           self.mock_browser_backend, self.mock_platform_backend,
           self.fake_startup_args)
     self.assertIn('Boom!', repr(context.exception))
+
+  def testForegroundTabWaitsUntilVisible(self):
+    self.mock_browser_backend.IsBrowserRunning.return_value = False
+    mock_tab = mock.MagicMock()
+    mock_tab.EvaluateJavaScript.side_effect = [False, False, True]
+    self.mock_browser_backend.tab_list_backend = [mock_tab]
+    b = browser_module.Browser(
+        self.mock_browser_backend, self.mock_platform_backend,
+        self.fake_startup_args)
+    self.assertEqual(b.foreground_tab, mock_tab)
+    self.assertEqual(mock_tab.EvaluateJavaScript.call_count, 3)
+
+  def testForegroundTabRaisesTabMissingErrorOnTimeout(self):
+    self.mock_browser_backend.IsBrowserRunning.return_value = False
+    mock_tab = mock.MagicMock()
+    mock_tab.EvaluateJavaScript.return_value = False
+    self.mock_browser_backend.tab_list_backend = [mock_tab]
+    b = browser_module.Browser(
+        self.mock_browser_backend, self.mock_platform_backend,
+        self.fake_startup_args)
+    orig_wait_for = py_utils.WaitFor
+    with mock.patch(
+        'py_utils.WaitFor',
+        side_effect=lambda cond, timeout: orig_wait_for(cond, timeout=0)):
+      with self.assertRaises(exceptions.TabMissingError):
+        _ = b.foreground_tab
 
 
 class TestBrowserCreation(unittest.TestCase):
