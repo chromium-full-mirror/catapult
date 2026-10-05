@@ -117,6 +117,7 @@ class InspectorPage():
       frame_id = res['result']['frameId']
       if self._navigated_frame_ids and frame_id in self._navigated_frame_ids:
         self._navigated_frame_ids = None
+        self._WaitForNavigationCommit(timeout)
         return
       self._navigation_frame_id = frame_id
     else:
@@ -124,6 +125,15 @@ class InspectorPage():
       self._navigated_frame_ids = None
       self._navigation_url = url
     self.WaitForNavigate(timeout)
+    self._WaitForNavigationCommit(timeout)
+
+  def _WaitForNavigationCommit(self, timeout):
+    # Page.frameNavigated precedes the browser-side commit. Renderer commands
+    # are held until the browser finishes navigation, so this round trip waits
+    # for the commit without waiting for the page's resources to load.
+    res = self._inspector_websocket.SyncRequest({'method': 'Page.getFrameTree'},
+                                                timeout)
+    assert 'result' in res, res
 
   def CaptureScreenshot(self, timeout=60):
     """Captures a screenshot of the visible web contents.
