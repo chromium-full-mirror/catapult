@@ -37,7 +37,13 @@ tr.exportTo('tr.e.cc', function() {
 
   ObjectSnapshot.subTypes.register(
       RenderPassSnapshot,
-      {typeName: 'cc::RenderPass'});
+      {
+        typeNames: [
+          'cc::RenderPass',
+          'CompositorRenderPass',
+          'viz::CompositorRenderPass',
+        ]
+      });
 
   return {
     RenderPassSnapshot,

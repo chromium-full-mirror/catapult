@@ -104,7 +104,7 @@ tr.exportTo('tr.ui.e.chrome.cc', function() {
 
         const analysis = selection.createAnalysis();
         Polymer.dom(this.analysisEl_).appendChild(analysis);
-        for (const child of this.analysisEl_.children) {
+        for (const child of Polymer.dom(this.analysisEl_).children) {
           child.style.userSelect = 'text';
         }
       } else {

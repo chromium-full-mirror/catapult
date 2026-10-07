@@ -12,13 +12,61 @@ found in the LICENSE file.
 'use strict';
 
 tr.exportTo('tr.ui.b', function() {
+  // Matches CSS url(...) functional notation, capturing an optional quote
+  // character and the URL inside. Examples:
+  //   url(../images/chrome-left.png)
+  //   url('images/ui-states.png')
+  //   url("images/checkerboard.png")
+  const CSS_URL_FUNCTION_REGEX = /url\(\s*(['"]?)([^)'"]+)\1\s*\)/g;
+
+  // Matches URIs that should not be resolved relative to the document base URL:
+  //   - Fragment-only references, e.g. "#clip-path"
+  //   - Root-relative paths, e.g. "/tracing/images/foo.png"
+  //   - Scheme-prefixed URIs, e.g. "data:image/png;base64,...",
+  //     "http://...", "https://...", "chrome://..."
+  const NON_RELATIVE_URI_REGEX = /^(#|\/|[a-zA-Z][a-zA-Z0-9+.-]*:)/;
+
   function instantiateTemplate(selector, doc) {
     doc = doc || document;
-    const el = Polymer.dom(doc).querySelector(selector);
+    let el = Polymer.dom(doc).querySelector(selector);
+    if (!el && doc !== document) {
+      el = Polymer.dom(document).querySelector(selector);
+    }
     if (!el) {
       throw new Error('Element not found: ' + selector);
     }
-    return doc.importNode(el.content, true);
+    const node = doc.importNode(el.content, true);
+    // Under the WebComponentsV0 HTMLImports polyfill, when a <template> from
+    // an imported HTML document (such as /tracing/ui/base/quad_stack_view.html)
+    // is cloned and inserted into the main document (e.g.
+    // /tracing_examples/trace_viewer.html), relative url(...) paths in its
+    // <style> tags are resolved by the browser against the main document's URL
+    // instead of the imported HTML document's baseURI, causing relative asset
+    // URLs (like url(../images/chrome-left.png)) to 404 unless rewritten
+    // against the imported document's base URL.
+    const ownerDoc = el.ownerDocument || doc;
+    const baseUrl = ownerDoc._URL || ownerDoc.baseURI || ownerDoc.URL;
+    if (baseUrl && typeof URL === 'function') {
+      const styles = Polymer.dom(node).querySelectorAll('style');
+      for (let i = 0; i < styles.length; i++) {
+        const style = styles[i];
+        style.textContent = style.textContent.replace(
+            CSS_URL_FUNCTION_REGEX,
+            function(match, quote, url) {
+              const trimmedUrl = url.trim();
+              if (NON_RELATIVE_URI_REGEX.test(trimmedUrl)) {
+                return match;
+              }
+              try {
+                const resolved = new URL(trimmedUrl, baseUrl).href;
+                return 'url(' + quote + resolved + quote + ')';
+              } catch (e) {
+                return match;
+              }
+            });
+      }
+    }
+    return node;
     //    return el.createInstance();
   }
 

@@ -250,7 +250,7 @@ tr.exportTo('tr.ui.e.chrome.cc', function() {
               (layer.gpuMemoryUsageInBytes > 0)) {
             const gpuUsageStr = tr.b.Unit.byName.sizeInBytes.format(
                 layer.gpuMemoryUsageInBytes);
-            Polymer.dom(notesEl).textContent += ' (' + gpuUsageStr + ' MiB)';
+            Polymer.dom(notesEl).textContent += ' (' + gpuUsageStr + ')';
           }
 
           item.layer = layer;

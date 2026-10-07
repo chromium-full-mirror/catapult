@@ -12,7 +12,8 @@ found in the LICENSE file.
 'use strict';
 
 tr.b.unittest.testSuite(function() {
-  const THIS_DOC = document.currentScript.ownerDocument;
+  const THIS_DOC =
+      (document._currentScript || document.currentScript).ownerDocument;
   const SelectionMode = tr.ui.b.TableFormat.SelectionMode;
   const HighlightStyle = tr.ui.b.TableFormat.HighlightStyle;
   const ColumnAlignment = tr.ui.b.TableFormat.ColumnAlignment;

@@ -50,7 +50,8 @@ found in the LICENSE file.
  * QuadStack.
  */
 tr.exportTo('tr.ui.b', function() {
-  const THIS_DOC = document.currentScript.ownerDocument;
+  const THIS_DOC =
+      (document._currentScript || document.currentScript).ownerDocument;
 
   const constants = {};
   constants.IMAGE_LOAD_RETRY_TIME_MS = 500;

@@ -88,7 +88,8 @@ tr.exportTo('tr.ui.e.about_tracing', function() {
    * @extends {HTMLDivElement}
    */
   const ProfilingView = tr.ui.b.define('x-profiling-view');
-  const THIS_DOC = document.currentScript.ownerDocument;
+  const THIS_DOC =
+      (document._currentScript || document.currentScript).ownerDocument;
 
   ProfilingView.prototype = {
     __proto__: HTMLDivElement.prototype,

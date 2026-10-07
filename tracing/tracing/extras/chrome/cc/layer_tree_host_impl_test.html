@@ -6,7 +6,9 @@ found in the LICENSE file.
 -->
 
 <link rel="import" href="/tracing/core/test_utils.html">
+<link rel="import" href="/tracing/extras/chrome/cc/cc.html">
 <link rel="import" href="/tracing/extras/chrome/cc/layer_tree_host_impl.html">
+<link rel="import" href="/tracing/extras/chrome/cc/render_pass.html">
 <link rel="import" href="/tracing/extras/importer/trace_event_importer.html">
 <link rel="import" href="/tracing/model/model.html">
 
@@ -25,6 +27,219 @@ tr.b.unittest.testSuite(function() {
     const snapshot = instance.snapshots[0];
 
     assert.instanceOf(snapshot, tr.e.cc.LayerTreeHostImplSnapshot);
+  });
+
+  test('instantObjectEvents', function() {
+    const events = [
+      {
+        cat: 'disabled-by-default-cc.debug.display_items',
+        name: 'cc::DisplayItemList:snapshot',
+        ph: 'I',
+        pid: 1,
+        tid: 1,
+        ts: 100,
+        s: 't',
+        args: {
+          id: '0x50',
+          snapshot: {
+            layer_rect: [0, 0, 200, 200],
+            params: {
+              items: [],
+              layer_rect: [0, 0, 200, 200]
+            },
+            skp64: 'dGhlIHF1aWNrIGJyb3duIGZveA=='
+          }
+        }
+      },
+      {
+        cat: 'disabled-by-default-cc.debug,disabled-by-default-viz.quads,' +
+            'disabled-by-default-devtools.timeline.layers',
+        name: 'LayerTreeHostImpl:snapshot',
+        ph: 'I',
+        pid: 1,
+        tid: 2,
+        ts: 200,
+        s: 't',
+        args: {
+          layerTreeId: 1,
+          snapshot: {
+            device_viewport_size: {width: 200, height: 200},
+            active_tiles: [
+              {
+                id: 'cc::Tile/0x60',
+                cat: 'disabled-by-default-cc.debug',
+                layer_id: 2,
+                contents_scale: 1,
+                content_rect: [0, 0, 200, 200],
+                resolution: 'HIGH_RESOLUTION',
+                is_using_gpu_memory: true,
+                has_resource: true,
+                scheduled_priority: 1,
+                gpu_memory_usage: 1024,
+                draw_info: {
+                  is_solid_color: false
+                }
+              }
+            ],
+            frame: {
+              render_passes: [
+                {
+                  id: 'CompositorRenderPass/0x10',
+                  shared_quad_state_list: [
+                    {
+                      index: 0,
+                      quad_to_target_transform: [
+                        1, 0, 0, 10,
+                        0, 1, 0, 20,
+                        0, 0, 1, 0,
+                        0, 0, 0, 1
+                      ],
+                      quad_layer_rect: [0, 0, 100, 50],
+                      visible_quad_layer_rect: [0, 0, 100, 50]
+                    }
+                  ],
+                  quad_list: [
+                    {
+                      index: 0,
+                      material: 10,
+                      rect: [5, 6, 100, 50],
+                      visible_rect: [5, 6, 100, 50],
+                      rect_as_target_space_quad: [
+                        15, 26, 115, 26, 115, 76, 15, 76
+                      ],
+                      visible_rect_as_target_space_quad: [
+                        15, 26, 115, 26, 115, 76, 15, 76
+                      ],
+                      needs_blending: true,
+                      shared_quad_state: {index: 0}
+                    }
+                  ]
+                }
+              ]
+            },
+            active_tree: {
+              id: 'cc::LayerTreeImpl/0x20',
+              render_surface_layer_list: [
+                {id_ref: '0x40'}
+              ],
+              layers: [
+                {
+                  id: 'cc::LayerImpl/0x30',
+                  base_type: 'cc::LayerImpl',
+                  cat: 'disabled-by-default-cc.debug',
+                  layer_id: 1,
+                  layer_name: 'root',
+                  bounds: [0, 0],
+                  position: [0, 0],
+                  draws_content: 0,
+                  gpu_memory_usage: 0,
+                  layer_quad: [0, 0, 0, 0, 0, 0, 0, 0],
+                  transform: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+                },
+                {
+                  id: 'cc::PictureLayerImpl/0x40',
+                  base_type: 'cc::LayerImpl',
+                  cat: 'disabled-by-default-cc.debug',
+                  layer_id: 2,
+                  layer_name: 'content',
+                  bounds: [200, 200],
+                  position: [0, 0],
+                  draws_content: 1,
+                  gpu_memory_usage: 1024,
+                  layer_quad: [0, 0, 200, 0, 200, 200, 0, 200],
+                  transform: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+                  all_touch_action_regions: [0, 0, 50, 50],
+                  invalidation: [0, 0, 200, 200],
+                  unrecorded_region: [],
+                  pictures: [{id_ref: '0x50'}],
+                  coverage_tiles: []
+                }
+              ]
+            },
+            tile_manager: {
+              all_tiles: []
+            }
+          }
+        }
+      },
+      {
+        cat: 'disabled-by-default-cc.debug',
+        name: 'cc::LayerImpl:deleted',
+        ph: 'I',
+        pid: 1,
+        tid: 2,
+        ts: 300,
+        s: 't',
+        args: {
+          id: '0x40'
+        }
+      },
+      {
+        cat: 'disabled-by-default-cc.debug',
+        name: 'cc::Tile:deleted',
+        ph: 'I',
+        pid: 1,
+        tid: 2,
+        ts: 300,
+        s: 't',
+        args: {
+          id: '0x60'
+        }
+      },
+      {
+        cat: 'disabled-by-default-viz.quads',
+        name: 'CompositorRenderPass:deleted',
+        ph: 'I',
+        pid: 1,
+        tid: 2,
+        ts: 300,
+        s: 't',
+        args: {}
+      }
+    ];
+
+    const m = tr.c.TestUtils.newModelWithEvents(
+        [events], {shiftWorldToZero: false});
+    assert.isFalse(m.hasImportWarnings);
+    const p = m.processes[1];
+
+    const instance = p.objects.getAllInstancesNamed('LayerTreeHostImpl')[0];
+    assert.isDefined(instance);
+    assert.instanceOf(instance, tr.e.cc.LayerTreeHostImplInstance);
+    const snapshot = instance.snapshots[0];
+    assert.instanceOf(snapshot, tr.e.cc.LayerTreeHostImplSnapshot);
+
+    const renderPass = snapshot.args.frame.renderPasses[0];
+    assert.instanceOf(renderPass, tr.e.cc.RenderPassSnapshot);
+    assert.strictEqual(renderPass.quadList.length, 1);
+    const drawQuad = renderPass.quadList[0];
+    assert.instanceOf(drawQuad.rectAsTargetSpaceQuad, tr.b.math.Quad);
+    assert.deepEqual(Array.from(drawQuad.rectAsTargetSpaceQuad.p1), [15, 26]);
+    assert.deepEqual(Array.from(drawQuad.rectAsTargetSpaceQuad.p2), [115, 26]);
+    assert.deepEqual(Array.from(drawQuad.rectAsTargetSpaceQuad.p3), [115, 76]);
+    assert.deepEqual(Array.from(drawQuad.rectAsTargetSpaceQuad.p4), [15, 76]);
+    assert.instanceOf(drawQuad.visibleRectAsTargetSpaceQuad, tr.b.math.Quad);
+    assert.deepEqual(
+        Array.from(drawQuad.visibleRectAsTargetSpaceQuad.p1), [15, 26]);
+
+    const activeTree = snapshot.activeTree;
+    assert.strictEqual(activeTree.renderSurfaceLayerList.length, 1);
+    const pictureLayer = activeTree.renderSurfaceLayerList[0];
+    assert.instanceOf(pictureLayer, tr.e.cc.LayerImplSnapshot);
+    assert.strictEqual(pictureLayer.objectInstance.typeName,
+        'cc::PictureLayerImpl');
+    assert.strictEqual(pictureLayer.objectInstance.deletionTs, 0.3);
+    assert.isTrue(pictureLayer.objectInstance.deletionTsWasExplicit);
+    assert.strictEqual(pictureLayer.touchEventHandlerRegion.rects.length, 1);
+    assert.strictEqual(pictureLayer.pictures.length, 1);
+    assert.instanceOf(
+        pictureLayer.pictures[0], tr.e.cc.DisplayItemListSnapshot);
+
+    assert.strictEqual(snapshot.activeTiles.length, 1);
+    assert.instanceOf(snapshot.activeTiles[0], tr.e.cc.TileSnapshot);
+    assert.strictEqual(snapshot.activeTiles[0].objectInstance.deletionTs, 0.3);
+    assert.isTrue(
+        snapshot.activeTiles[0].objectInstance.deletionTsWasExplicit);
   });
 });
 </script>

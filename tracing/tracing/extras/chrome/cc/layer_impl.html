@@ -87,7 +87,7 @@ tr.exportTo('tr.e.cc', function() {
       }
 
       this.touchEventHandlerRegion = tr.e.cc.Region.fromArrayOrUndefined(
-          this.args.touchEventHandlerRegion);
+          this.args.touchEventHandlerRegion || this.args.allTouchActionRegions);
       this.wheelEventHandlerRegion = tr.e.cc.Region.fromArrayOrUndefined(
           this.args.wheelEventHandlerRegion);
       this.nonFastScrollableRegion = tr.e.cc.Region.fromArrayOrUndefined(

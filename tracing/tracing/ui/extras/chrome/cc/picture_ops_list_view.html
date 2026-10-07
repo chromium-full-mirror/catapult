@@ -123,7 +123,7 @@ tr.exportTo('tr.ui.e.chrome.cc', function() {
         item.style.paddingLeft = '5px';
         item.style.cursor = 'pointer';
 
-        for (const child of item.children) {
+        for (const child of Polymer.dom(item).children) {
           child.style.fontWeight = 'normal';
           child.style.marginLeft = '1em';
           child.style.maxWidth = '300px';

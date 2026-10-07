@@ -133,7 +133,8 @@ tr.exportTo('tr.ui.e.chrome.cc', function() {
   };
 
   tr.ui.analysis.ObjectSnapshotView.register(
-      LayerTreeHostImplSnapshotView, {typeName: 'cc::LayerTreeHostImpl'});
+      LayerTreeHostImplSnapshotView,
+      {typeNames: ['cc::LayerTreeHostImpl', 'LayerTreeHostImpl']});
 
   return {
     LayerTreeHostImplSnapshotView,

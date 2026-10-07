@@ -290,6 +290,42 @@ tr.exportTo('tr.e.importer', function() {
   };
 
   /**
+   * Extracts an object ID from the 'args' payload of an instant event ('I'/'i')
+   * that represents an object lifecycle event (:created, :snapshot, :deleted).
+   *
+   * When Chromium migrated compositor object trace events from
+   * TRACE_EVENT_OBJECT_*_WITH_ID to TRACE_EVENT_INSTANT, the object ID was
+   * moved into event.args (as args.id, args.layerTreeId, or args.snapshot.id,
+   * optionally prefixed with 'TypeName/').
+   *
+   * @param {Object=} args The trace event's args dictionary.
+   * @return {string|undefined} The normalized object ID string, if present.
+   */
+  TraceEventImporter.extractObjectIdFromArgs_ = function(args) {
+    if (!args) return undefined;
+    let rawId = undefined;
+    if (args.id !== undefined) {
+      rawId = args.id;
+    } else if (args.layerTreeId !== undefined) {
+      rawId = args.layerTreeId;
+    } else if (args.snapshot && typeof args.snapshot === 'object' &&
+               args.snapshot.id !== undefined) {
+      rawId = args.snapshot.id;
+    }
+    if (typeof rawId === 'number') {
+      return String(rawId);
+    }
+    if (typeof rawId === 'string') {
+      const slashIdx = rawId.indexOf('/');
+      if (slashIdx !== -1) {
+        return rawId.substring(slashIdx + 1);
+      }
+      return rawId;
+    }
+    return undefined;
+  };
+
+  /**
    * Extracts a scoped ID from an event.
    *
    * In legacy trace files, the ID of an event is always stored in the 'id'
@@ -326,6 +362,26 @@ tr.exportTo('tr.e.importer', function() {
       return new tr.model.ScopedId(scope, event.bind_id);
     }
     return undefined;
+  };
+
+  /**
+   * Extracts a scoped ID from an object event (including instant events that
+   * represent object snapshots or lifecycle events where the object ID is
+   * stored in event.args).
+   *
+   * @param {!Object} event A trace event.
+   * @return {!tr.model.ScopedId|undefined}
+   */
+  TraceEventImporter.scopedIdForObjectEvent_ = function(event) {
+    if (event.id === undefined && event.id2 === undefined &&
+        (event.ph === 'I' || event.ph === 'i' || event.ph === 'R')) {
+      const argsId = TraceEventImporter.extractObjectIdFromArgs_(event.args);
+      if (argsId !== undefined) {
+        const scope = event.scope || tr.model.OBJECT_DEFAULT_SCOPE;
+        return new tr.model.ScopedId(scope, argsId);
+      }
+    }
+    return TraceEventImporter.scopedIdForEvent_(event);
   };
 
   TraceEventImporter.prototype = {
@@ -441,8 +497,9 @@ tr.exportTo('tr.e.importer', function() {
         thread});
       if (thread.guid in this.contextProcessorPerThread) {
         const processor = this.contextProcessorPerThread[thread.guid];
-        const scopedId = TraceEventImporter.scopedIdForEvent_(event);
-        if (event.ph === 'D') {
+        const scopedId = TraceEventImporter.scopedIdForObjectEvent_(event);
+        if (event.ph === 'D' ||
+            (event.name && event.name.endsWith(':deleted'))) {
           processor.destroyContext(scopedId);
         }
         // The context processor maintains a cache of unique context objects and
@@ -2357,8 +2414,12 @@ tr.exportTo('tr.e.importer', function() {
 
     isObjectInstantEvent_(event) {
       if (!event || !event.name) return false;
-      if (event.args && event.args.snapshot !== undefined) return true;
-      return event.name.endsWith(':created') || event.name.endsWith(':deleted');
+      const isObjectEvent =
+          (event.args && event.args.snapshot !== undefined) ||
+          event.name.endsWith(':created') ||
+          event.name.endsWith(':deleted');
+      if (!isObjectEvent) return false;
+      return TraceEventImporter.scopedIdForObjectEvent_(event) !== undefined;
     },
 
     /**
@@ -2370,7 +2431,7 @@ tr.exportTo('tr.e.importer', function() {
 
       const processEvent = function(objectEventState) {
         const event = objectEventState.event;
-        const scopedId = TraceEventImporter.scopedIdForEvent_(event);
+        const scopedId = TraceEventImporter.scopedIdForObjectEvent_(event);
         const thread = objectEventState.thread;
         if (event.name === undefined) {
           this.model_.importWarning({
@@ -2406,6 +2467,7 @@ tr.exportTo('tr.e.importer', function() {
             effectivePh = 'O';
           }
         }
+        const isInstantObjectEvent = (event.ph !== effectivePh);
 
         let instance;
         if (effectivePh === 'N') {
@@ -2432,12 +2494,25 @@ tr.exportTo('tr.e.importer', function() {
           let snapshot;
           try {
             const args = this.deepCopyIfNeeded_(event.args.snapshot);
+            if (isInstantObjectEvent &&
+                args && typeof args === 'object' && args.id !== undefined) {
+              delete args.id;
+            }
             let cat;
             if (args.cat) {
               cat = args.cat;
               delete args.cat;
             } else {
               cat = event.cat;
+              if (isInstantObjectEvent) {
+                const instanceMap = process.objects.getOrCreateInstanceMap_(
+                    scopedId);
+                if (instanceMap.lastInstance &&
+                    instanceMap.lastInstance.deletionTs === Number.MAX_VALUE &&
+                    instanceMap.lastInstance.name === objectName) {
+                  cat = instanceMap.lastInstance.category;
+                }
+              }
             }
 
             let baseTypename;
@@ -2461,7 +2536,16 @@ tr.exportTo('tr.e.importer', function() {
           instance = snapshot.objectInstance;
         } else if (effectivePh === 'D') {
           try {
-            process.objects.idWasDeleted(scopedId, event.cat, objectName, ts);
+            let cat = event.cat;
+            if (isInstantObjectEvent) {
+              const instanceMap = process.objects.getOrCreateInstanceMap_(
+                  scopedId);
+              if (instanceMap.lastInstance &&
+                  instanceMap.lastInstance.deletionTs === Number.MAX_VALUE) {
+                cat = instanceMap.lastInstance.category;
+              }
+            }
+            process.objects.idWasDeleted(scopedId, cat, objectName, ts);
             const instanceMap = process.objects.getOrCreateInstanceMap_(
                 scopedId);
             instance = instanceMap.lastInstance;

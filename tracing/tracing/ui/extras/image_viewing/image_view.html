@@ -47,7 +47,8 @@ found in the LICENSE file.
 'use strict';
 
 tr.exportTo('tr.ui.e.img', function() {
-  const THIS_DOC = document.currentScript.ownerDocument;
+  const THIS_DOC =
+      (document._currentScript || document.currentScript).ownerDocument;
 
   /*
    * Displays an image snapshot.

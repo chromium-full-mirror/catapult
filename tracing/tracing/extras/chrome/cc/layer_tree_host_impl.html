@@ -137,7 +137,7 @@ tr.exportTo('tr.e.cc', function() {
 
   ObjectSnapshot.subTypes.register(
       LayerTreeHostImplSnapshot,
-      {typeName: 'cc::LayerTreeHostImpl'});
+      {typeNames: ['cc::LayerTreeHostImpl', 'LayerTreeHostImpl']});
 
   /**
    * @constructor
@@ -188,7 +188,7 @@ tr.exportTo('tr.e.cc', function() {
 
   ObjectInstance.subTypes.register(
       LayerTreeHostImplInstance,
-      {typeName: 'cc::LayerTreeHostImpl'});
+      {typeNames: ['cc::LayerTreeHostImpl', 'LayerTreeHostImpl']});
 
   return {
     LayerTreeHostImplSnapshot,

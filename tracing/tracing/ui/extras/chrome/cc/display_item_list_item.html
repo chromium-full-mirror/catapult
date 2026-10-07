@@ -53,7 +53,7 @@ An element displaying basic information about a display item in a list view.
       {{name}}
       <template is="dom-if" if="{{_computeIfSKP(richDetails)}}">
         <a class="extra" href$="{{_computeHref(richDetails)}}"
-           download="drawing.skp" on-click="{{stopPropagation}}">SKP</a>
+           download="drawing.skp" on-click="stopPropagation">SKP</a>
       </template>
     </div>
     <div class="details">
@@ -86,13 +86,11 @@ An element displaying basic information about a display item in a list view.
   Polymer({
     is: 'tr-ui-e-chrome-cc-display-item-list-item',
 
-    created() {
-      // TODO(charliea): Why is setAttribute necessary here but not below? We
-      // should reach out to the Polymer team to figure out.
-      Polymer.dom(this).setAttribute('name', '');
-      Polymer.dom(this).setAttribute('rawDetails', '');
-      Polymer.dom(this).setAttribute('richDetails', undefined);
-      Polymer.dom(this).setAttribute('data_', undefined);
+    ready() {
+      this.name = '';
+      this.rawDetails = '';
+      this.richDetails = undefined;
+      this.data_ = undefined;
     },
 
     get data() {

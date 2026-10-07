@@ -41,7 +41,8 @@ found in the LICENSE file.
 tr.exportTo('tr.ui.e.chrome.cc', function() {
   const ColorScheme = tr.b.ColorScheme;
 
-  const THIS_DOC = document.currentScript.ownerDocument;
+  const THIS_DOC =
+      (document._currentScript || document.currentScript).ownerDocument;
   const TILE_HEATMAP_TYPE = {};
   TILE_HEATMAP_TYPE.NONE = 'none';
   TILE_HEATMAP_TYPE.SCHEDULED_PRIORITY = 'scheduledPriority';
@@ -1000,6 +1001,7 @@ tr.exportTo('tr.ui.e.chrome.cc', function() {
         const quadList = renderPasses[i].quadList;
         for (let j = 0; j < quadList.length; ++j) {
           const drawQuad = quadList[j];
+          if (!drawQuad.rectAsTargetSpaceQuad) continue;
           const quad = drawQuad.rectAsTargetSpaceQuad.clone();
           quad.borderColor = 'rgb(170, 204, 238)';
           quad.borderWidth = 2;

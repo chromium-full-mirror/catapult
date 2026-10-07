@@ -6797,6 +6797,61 @@ tr.b.unittest.testSuite(function() {
     assert.isUndefined(id.pid);
   });
 
+  test('importInstantObjectEvents', function() {
+    const events = [
+      // Created without id should remain a regular instant event (no warning).
+      {ts: 5, pid: 1, tid: 1, ph: 'I', cat: 'cc',
+        name: 'LayerTreeHostImpl:created', s: 't', args: {}},
+      // Created with numeric args.id (taking precedence over bind_id).
+      {ts: 10, pid: 1, tid: 1, ph: 'I', cat: 'disabled-by-default-cc.debug',
+        name: 'LayerTreeHostImpl:created', s: 't', bind_id: '0x9999',
+        args: {id: 1}},
+      // Snapshot with different category string and args.id.
+      {ts: 20, pid: 1, tid: 1, ph: 'I',
+        cat: 'disabled-by-default-cc.debug,disabled-by-default-viz.quads',
+        name: 'LayerTreeHostImpl:snapshot', s: 't', bind_id: '0x9999',
+        args: {
+          id: 1,
+          snapshot: {
+            device_viewport_size: {width: 10, height: 10},
+            active_tiles: [],
+            active_tree: {
+              id: 'cc::LayerTreeImpl/0x10',
+              render_surface_layer_list: [],
+              layers: [],
+            },
+          },
+        }},
+      // Layer snapshot using args.layerTreeId when args.id is absent.
+      {ts: 25, pid: 1, tid: 1, ph: 'I', cat: 'cc',
+        name: 'Layer:snapshot', s: 't',
+        args: {layerTreeId: 42, snapshot: {bounds: [10, 10]}}},
+      // Deleted without id should remain a regular instant event (no warning).
+      {ts: 30, pid: 1, tid: 1, ph: 'I', cat: 'cc',
+        name: 'CompositorRenderPass:deleted', s: 't', args: {}},
+      // Deleted with args.id and initial category.
+      {ts: 40, pid: 1, tid: 1, ph: 'I', cat: 'disabled-by-default-cc.debug',
+        name: 'LayerTreeHostImpl:deleted', s: 't', bind_id: '0x9999',
+        args: {id: 1}},
+    ];
+    const m = tr.c.TestUtils.newModelWithEvents(
+        [events], {shiftWorldToZero: false});
+    assert.isFalse(m.hasImportWarnings);
+    const p1 = m.processes[1];
+    const i1 = p1.objects.getObjectInstanceAt(
+        new tr.model.ScopedId('ptr', '1', 1), 0.01);
+    assert.strictEqual(i1.typeName, 'LayerTreeHostImpl');
+    assert.strictEqual(i1.creationTs, 0.01);
+    assert.strictEqual(i1.deletionTs, 0.04);
+    assert.strictEqual(i1.snapshots.length, 1);
+    assert.strictEqual(i1.snapshots[0].ts, 0.02);
+
+    const iLayer = p1.objects.getObjectInstanceAt(
+        new tr.model.ScopedId('ptr', '42', 1), 0.025);
+    assert.strictEqual(iLayer.typeName, 'Layer');
+    assert.strictEqual(iLayer.snapshots.length, 1);
+  });
+
   // TODO(nduca): one slice, two threads
   // TODO(nduca): one slice, two pids
 });
