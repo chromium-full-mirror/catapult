@@ -647,3 +647,32 @@ class VinnV8ArgsTest(unittest.TestCase):
     v8_args = self.mock_popen.call_args[0][0]
     self.assertIn('--foo', v8_args)
     self.assertIn('--bar=True', v8_args)
+
+
+class VinnD8PathTest(unittest.TestCase):
+
+  def testGetD8BinaryPathLinuxAarch64_64Bit(self):
+    with mock.patch('platform.system', return_value='Linux'), \
+         mock.patch('platform.machine', return_value='aarch64'), \
+         mock.patch('platform.architecture', return_value=('64bit', 'ELF')):
+      path = _vinn._GetD8BinaryPathForPlatform()
+      self.assertTrue(
+          path.endswith(os.path.join('linux', 'arm64', 'd8')), path)
+      self.assertTrue(os.path.exists(path))
+
+  def testGetD8BinaryPathLinuxAarch64_32BitUserspace(self):
+    with mock.patch('platform.system', return_value='Linux'), \
+         mock.patch('platform.machine', return_value='aarch64'), \
+         mock.patch('platform.architecture', return_value=('32bit', 'ELF')):
+      path = _vinn._GetD8BinaryPathForPlatform()
+      self.assertTrue(
+          path.endswith(os.path.join('linux', 'arm', 'd8')), path)
+      self.assertTrue(os.path.exists(path))
+
+  def testGetD8BinaryPathLinuxArmv7l(self):
+    with mock.patch('platform.system', return_value='Linux'), \
+         mock.patch('platform.machine', return_value='armv7l'):
+      path = _vinn._GetD8BinaryPathForPlatform()
+      self.assertTrue(
+          path.endswith(os.path.join('linux', 'arm', 'd8')), path)
+      self.assertTrue(os.path.exists(path))
