@@ -455,14 +455,8 @@ tr.exportTo('tr.metrics.sh', function() {
     const timeToPaintEntries = findTimeToXEntries('loading',
         'LargestTextPaint::Candidate', rendererHelper, frameToNavStartEvents,
         navIdToNavStartEvents);
-    const timeToPaintBlockingEntries = findTimeToXEntries('loading',
-        'LargestTextPaint::NoCandidate', rendererHelper, frameToNavStartEvents,
-        navIdToNavStartEvents);
     const lastCandidateEvents =
-        findLastCandidateForEachNavigation(
-            timeToPaintEntries.concat(timeToPaintBlockingEntries))
-            .filter(event =>
-              event.targetEvent.title !== 'LargestTextPaint::NoCandidate');
+        findLastCandidateForEachNavigation(timeToPaintEntries);
     return collectTimeToEvent(rendererHelper, lastCandidateEvents);
   }
 
@@ -471,14 +465,8 @@ tr.exportTo('tr.metrics.sh', function() {
     const timeToPaintEntries = findTimeToXEntries('loading',
         'LargestImagePaint::Candidate', rendererHelper, frameToNavStartEvents,
         navIdToNavStartEvents);
-    const timeToPaintBlockingEntries = findTimeToXEntries('loading',
-        'LargestImagePaint::NoCandidate', rendererHelper, frameToNavStartEvents,
-        navIdToNavStartEvents);
     const lastCandidateEvents =
-        findLastCandidateForEachNavigation(
-            timeToPaintEntries.concat(timeToPaintBlockingEntries))
-            .filter(event =>
-              event.targetEvent.title !== 'LargestImagePaint::NoCandidate');
+        findLastCandidateForEachNavigation(timeToPaintEntries);
     return collectTimeToEvent(rendererHelper, lastCandidateEvents);
   }
 
