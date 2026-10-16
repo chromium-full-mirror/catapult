@@ -2920,6 +2920,37 @@ class DeviceUtilSwitchUserTest(DeviceUtilsTest):
       self.device.SwitchUser(user_id)
 
 
+class DeviceUtilsEnsureMainUserTest(DeviceUtilsTest):
+
+  def testEnsureMainUser_switchesAndWaitsForUnlock(self):
+    with self.assertCalls((self.call.device.GetMainUser(), 10),
+                          (self.call.device.GetCurrentUser(cache=False), 0),
+                          self.call.device.SwitchUser(10),
+                          (self.call.device.RunShellCommand(
+                              ['am', 'get-started-user-state', '10'],
+                              check_return=False), ['BOOTING']),
+                          (self.call.device.RunShellCommand(
+                              ['am', 'get-started-user-state', '10'],
+                              check_return=False), ['RUNNING_UNLOCKED'])):
+      self.assertEqual(10, self.device.EnsureMainUser())
+    self.assertEqual(10, self.device.target_user)
+
+  def testEnsureMainUser_alreadyCurrentAndUnlocked(self):
+    with self.assertCalls((self.call.device.GetMainUser(), 10),
+                          (self.call.device.GetCurrentUser(cache=False), 10),
+                          (self.call.device.RunShellCommand(
+                              ['am', 'get-started-user-state', '10'],
+                              check_return=False), ['RUNNING_UNLOCKED'])):
+      self.assertEqual(10, self.device.EnsureMainUser())
+    self.assertEqual(10, self.device.target_user)
+
+  def testEnsureMainUser_systemUser(self):
+    with self.assertCalls((self.call.device.GetMainUser(), 0),
+                          (self.call.device.GetCurrentUser(cache=False), 0)):
+      self.assertEqual(0, self.device.EnsureMainUser())
+    self.assertEqual(0, self.device.target_user)
+
+
 class DeviceUtilsGoHomeTest(DeviceUtilsTest):
   def testGoHome_popupsExist(self):
     with self.assertCalls(

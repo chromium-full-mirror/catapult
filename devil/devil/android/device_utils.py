@@ -350,6 +350,10 @@ _USER_FLAG_FULL = 0x00000400
 #  * on Headless System User Mode (hsum), main user is the first human user.
 #  * on non-hsum, main user is the system user (user 0)
 _USER_FLAG_MAIN = 0x00004000
+# The system user, which is the main user on non-hsum devices.
+_SYSTEM_USER_ID = 0
+# Max time to wait for a user to be started and unlocked after switching to it.
+_USER_UNLOCK_TIMEOUT = 60
 
 # A string template pointing to file that stores the gboard preference
 # for a given user.
@@ -2330,6 +2334,46 @@ class DeviceUtils(object):
     cmd = ['am', 'switch-user', str(user_id)]
     self.RunShellCommand(cmd, check_return=True)
     self._cache['current_user'] = None
+
+  @decorators.WithTimeoutAndRetriesFromInstance(
+      min_default_timeout=_USER_UNLOCK_TIMEOUT)
+  def EnsureMainUser(self, timeout=None, retries=None):
+    """Makes the main user the foreground, unlocked and target user.
+
+    `am switch-user` returns before the user is started. On devices with
+    Headless System User Mode (hsum), the main user's credential-encrypted
+    storage (e.g. /data/media/<user_id>) is not accessible until the user is
+    unlocked. This is also needed after a reboot, which brings hsum devices
+    back to the system user with the main user stopped.
+
+    Args:
+      timeout: timeout in seconds
+      retries: number of retries
+
+    Returns:
+      The id of the main user.
+
+    Raises:
+      CommandFailedError if the main user cannot be found.
+      CommandTimeoutError on timeout.
+      DeviceUnreachableError on missing device.
+    """
+    main_user = self.GetMainUser()
+    if self.GetCurrentUser(cache=False) != main_user:
+      logger.info('Switching to the main user with id %s', main_user)
+      self.SwitchUser(main_user)
+
+    def is_main_user_unlocked():
+      if main_user == _SYSTEM_USER_ID:
+        return True
+      output = self.RunShellCommand(
+          ['am', 'get-started-user-state',
+           str(main_user)], check_return=False)
+      return any('RUNNING_UNLOCKED' in line for line in output)
+
+    timeout_retry.WaitFor(is_main_user_unlocked, wait_period=1)
+    self.target_user = main_user
+    return main_user
 
   @decorators.WithTimeoutAndRetriesFromInstance()
   def GoHome(self, timeout=None, retries=None):
