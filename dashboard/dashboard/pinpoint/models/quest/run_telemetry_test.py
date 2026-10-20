@@ -33,6 +33,9 @@ _WATERFALL_ENABLED_GTEST_NAMES = {
     ],
     'gpu_perftests': [],
     'load_library_perf_tests': [],
+    'partition_alloc_perftests': [
+        '--test-launcher-jobs=1', '--test-launcher-retry-limit=0'
+    ],
     'performance_browser_tests': [
         '--full-performance-run',
         '--test-launcher-jobs=1',
@@ -60,6 +63,7 @@ GTEST_EXECUTABLE_NAME = {
     'dawn_perf_tests': 'dawn_perf_tests',
     'gpu_perftests': 'gpu_perftests',
     'load_library_perf_tests': 'load_library_perf_tests',
+    'partition_alloc_perftests': 'partition_alloc_perftests',
     'performance_browser_tests': 'browser_tests',
     'sync_performance_tests': 'sync_performance_tests',
     'tracing_perftests': 'tracing_perftests',

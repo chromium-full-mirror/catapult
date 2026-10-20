@@ -46,6 +46,7 @@ _BENCHMARKS_WITH_SYNTHETIC_STATISTICS = [
     'media.mobile',
     'media_backends_test',
     'memory.desktop',
+    'partition_alloc_perftests',
     'performance_browser_tests',
     'pinpoint.success',
     'platform.ReportDiskUsage',
