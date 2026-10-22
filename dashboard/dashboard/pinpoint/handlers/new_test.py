@@ -284,6 +284,43 @@ class NewTest(_NewTest):
                      str(job.state._changes[1]))
 
 
+  def testComparisonModeTry_WrapsBareFeatureFlags(self):
+    request = dict(_BASE_REQUEST)
+    request['comparison_mode'] = 'try'
+    request['base_extra_args'] = '--disable-features="MyFeatureA"'
+    request['experiment_extra_args'] = '--enable-features=MyFeatureB'
+
+    response = self.Post('/api/new', request, status=200)
+    job = job_module.JobFromId(json.loads(response.body)['jobId'])
+    self.assertEqual(job.state._changes[0].change_args, [
+        '--extra-browser-args=--disable-features=MyFeatureA',
+        '--extra-browser-args=--disable-features=SessionRestoreInfobar',
+    ])
+    self.assertEqual(job.state._changes[1].change_args, [
+        '--extra-browser-args=--enable-features=MyFeatureB',
+        '--extra-browser-args=--disable-features=SessionRestoreInfobar',
+    ])
+
+  def testComparisonModeTry_DoesNotDoubleWrapFeatureFlags(self):
+    request = dict(_BASE_REQUEST)
+    request['comparison_mode'] = 'try'
+    request['base_extra_args'] = json.dumps(
+        ['--extra-browser-args=--disable-features=MyFeatureA'])
+    request['experiment_extra_args'] = json.dumps(
+        ['--extra-browser-args', '--disable-features=MyFeatureB'])
+
+    response = self.Post('/api/new', request, status=200)
+    job = job_module.JobFromId(json.loads(response.body)['jobId'])
+    self.assertEqual(job.state._changes[0].change_args, [
+        '--extra-browser-args=--disable-features=MyFeatureA',
+        '--extra-browser-args=--disable-features=SessionRestoreInfobar',
+    ])
+    self.assertEqual(job.state._changes[1].change_args, [
+        '--extra-browser-args',
+        '--disable-features=MyFeatureB',
+        '--extra-browser-args=--disable-features=SessionRestoreInfobar',
+    ])
+
   def testComparisonModeTry_BaseNoPatchAndExperimentCommitPatch(self):
     request = dict(_BASE_REQUEST)
     request['comparison_mode'] = 'try'

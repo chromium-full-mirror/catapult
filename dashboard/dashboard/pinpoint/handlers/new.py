@@ -32,7 +32,10 @@ _ERROR_TAGS_DICT = 'Tags must be a dict of key/value string pairs.'
 _ERROR_PRIORITY = 'Priority must be an integer.'
 
 _EXTRA_BROWSER_ARGS_PREFIX = '--extra-browser-args'
-_ENABLE_FEATURES_PREFIX = '--enable-features'
+# Chrome feature flags that are commonly passed without the
+# --extra-browser-args= prefix. run_benchmark does not accept them directly, so
+# they are wrapped in --extra-browser-args= before being passed along.
+_BROWSER_FEATURE_FLAG_PREFIXES = ('--enable-features', '--disable-features')
 
 REGULAR_TELEMETRY_TESTS = {
     'performance_webview_test_suite',
@@ -212,7 +215,7 @@ def _ParseExtraArgs(args, is_crossbench=False):
 def _RearrangeExtraArgs(extra_args):
   n = len(extra_args)
   for i in range(n):
-    if extra_args[i].startswith(_ENABLE_FEATURES_PREFIX):
+    if extra_args[i].startswith(_BROWSER_FEATURE_FLAG_PREFIXES):
       if i == 0 or extra_args[i-1] != _EXTRA_BROWSER_ARGS_PREFIX:
         extra_args[i] = _EXTRA_BROWSER_ARGS_PREFIX + '=' + extra_args[i]
 
