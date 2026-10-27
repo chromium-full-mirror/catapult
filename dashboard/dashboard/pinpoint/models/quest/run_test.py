@@ -32,6 +32,7 @@ _CQ_SWARMING_EXECUTION_TIMEOUT = 600  # 60 * 10 minutes
 # Some benchmarks need longer timeouts.
 _BENCHMARK_TIMEOUTS = {
     'embedder.crossbench': 5400,  # 1.5 hours
+    'notification.embedder.crossbench': 5400,  # 1.5 hours
 }
 
 

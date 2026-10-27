@@ -150,6 +150,43 @@ class StartTest(unittest.TestCase):
             'tagfilter': 'tfilter'
         })
 
+  def testNotificationEmbedderCrossbench(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'notification.embedder.crossbench'
+    arguments['browser'] = 'android-webview-trichrome-google-bundle'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+    change = mock.MagicMock(spec=change_module.Change)
+    change.commits = ()
+    execution = quest.Start(change, 'https://isolate.server', 'isolate hash')
+    self.assertEqual(execution._extra_args, [
+        '--benchmark-display-name=notification.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=android-webview-trichrome-google-bundle',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS + [
+        '--results-label',
+        str(change),
+        '--wpr=crossbench_android_embedder_000.wprgo',
+        '--skip-wpr-script-injection',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/'
+        'cipd/arm64/Velvet_arm64.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/'
+        'notification_cuj_config.hjson',
+        '--probe-config=../../clank/android_webview/tools/'
+        'crossbench_config/agsa_probe_config.hjson',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--http-request-timeout=2s',
+        '--ignore-partial-failures',
+        '--embedder-process-name=googleapp',
+        '--embedder-setup-command-config=../../clank/android_webview/'
+        'tools/crossbench_config/agsa_setup_config.hjson',
+        '--embedder-drop-caches',
+        '--android-action=android.intent.action.WEB_SEARCH',
+        '--android-extras=query=weather',
+    ])
+    self.assertEqual(execution.execution_timeout_secs, 5400)
+
 
 class FromDictTest(unittest.TestCase):
 
@@ -227,6 +264,24 @@ class FromDictTest(unittest.TestCase):
     expected = run_telemetry_test.RunTelemetryTest(
         'server', run_test_test.DIMENSIONS, extra_args, _BASE_SWARMING_TAGS,
         _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+
+  def testCrossbenchNotificationEmbedder(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'notification.embedder.crossbench'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=notification.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'notification.embedder.crossbench',
+            'hasfilter': '0'
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
         'out/Release')
     self.assertEqual(quest, expected)
 

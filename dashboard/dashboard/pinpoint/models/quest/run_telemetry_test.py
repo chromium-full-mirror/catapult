@@ -105,6 +105,7 @@ _CROSSBENCH_NAME = {
     'embedder.crossbench': 'embedder',
     'gma.embedder.crossbench': 'embedder',
     'shell.embedder.crossbench': 'embedder',
+    'notification.embedder.crossbench': 'embedder',
     # Loading
     'loading.crossbench': 'loading',
     # webai.crossbench
@@ -164,6 +165,23 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--android-activity=ManuallyTriggeredStartupActivity',
         '--repetitions=25',
         '--cool-down-threshold=moderate',
+    ),
+    'notification.embedder.crossbench': (
+        '--wpr=crossbench_android_embedder_000.wprgo',
+        '--skip-wpr-script-injection',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/cipd/arm64/Velvet_arm64.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/notification_cuj_config.hjson',
+        '--probe-config=../../clank/android_webview/tools/crossbench_config/agsa_probe_config.hjson',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--http-request-timeout=2s',
+        '--ignore-partial-failures',
+        '--embedder-process-name=googleapp',
+        '--embedder-setup-command-config=../../clank/android_webview/tools/crossbench_config/agsa_setup_config.hjson',
+        '--embedder-drop-caches',
+        '--android-action=android.intent.action.WEB_SEARCH',
+        '--android-extras=query=weather',
     ),
     'loading.crossbench': (
         '--wpr=crossbench_android_loading_000.wprgo',
