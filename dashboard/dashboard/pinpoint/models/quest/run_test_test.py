@@ -126,6 +126,58 @@ class FromDictTest(unittest.TestCase):
                                 _BASE_SWARMING_TAGS, None, None)
     self.assertEqual(quest, expected)
 
+  def testCipdAndCaches(self):
+    cipd_input = {
+        'packages': [{
+            'packageName': 'infra/tools/mac_toolchain/${platform}',
+            'path': '.',
+            'version': 'git_revision:05fe195bf77656743f3daa99d063a794260b429b',
+        }],
+    }
+    caches = [{'name': 'xcode_ios_27a266a', 'path': 'Xcode.app'}]
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['cipd_input'] = cipd_input
+    arguments['caches'] = caches
+    quest = run_test.RunTest.FromDict(arguments)
+
+    expected = run_test.RunTest(
+        'server',
+        DIMENSIONS, [],
+        _BASE_SWARMING_TAGS,
+        None,
+        None,
+        cipd_input=cipd_input,
+        caches=caches)
+    self.assertEqual(quest, expected)
+    self.assertEqual(quest.cipd_input, cipd_input)
+    self.assertEqual(quest.caches, caches)
+
+  def testStringCipdAndCaches(self):
+    cipd_input = {
+        'packages': [{
+            'packageName': 'infra/tools/mac_toolchain/${platform}',
+            'path': '.',
+            'version': 'git_revision:05fe195bf77656743f3daa99d063a794260b429b',
+        }],
+    }
+    caches = [{'name': 'xcode_ios_27a266a', 'path': 'Xcode.app'}]
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['cipd_input'] = json.dumps(cipd_input)
+    arguments['caches'] = json.dumps(caches)
+    quest = run_test.RunTest.FromDict(arguments)
+
+    expected = run_test.RunTest(
+        'server',
+        DIMENSIONS, [],
+        _BASE_SWARMING_TAGS,
+        None,
+        None,
+        cipd_input=cipd_input,
+        caches=caches)
+    self.assertEqual(quest, expected)
+    self.assertEqual(quest.cipd_input, cipd_input)
+    self.assertEqual(quest.caches, caches)
+
 class _RunTestExecutionTest(unittest.TestCase):
 
   def GetNewTaskBase(self):
@@ -578,6 +630,74 @@ class RunTestFullTest(_RunTestExecutionTest):
         FakeJob('cafef00d', 'https://pinpoint/cafef00d', 'performance',
                 'user@example.com', State(1), ['a'], 'some_batch_id', {}))
     quest.Start('change_1', 'isolate server', 'input isolate hash')
+
+  @mock.patch('dashboard.services.swarming.IsBotAlive',
+              mock.MagicMock(return_value=True))
+  @mock.patch('dashboard.services.swarming.Tasks.Count',
+              mock.MagicMock(return_value={'count': 0}))
+  @mock.patch(
+      'dashboard.common.cloud_metric.PublishSwarmingBotPendingTasksMetric',
+      mock.MagicMock())
+  def testSuccess_CipdAndCaches(self, swarming_task_result, swarming_tasks_new):
+    del swarming_task_result
+    cipd_input = {
+        'packages': [{
+            'packageName': 'infra/tools/mac_toolchain/${platform}',
+            'path': '.',
+            'version': 'git_revision:05fe195bf77656743f3daa99d063a794260b429b',
+        }],
+    }
+    caches = [{'name': 'xcode_ios_27a266a', 'path': 'Xcode.app'}]
+    quest = run_test.RunTest(
+        'server',
+        DIMENSIONS, ['arg'],
+        _BASE_SWARMING_TAGS,
+        ['./bin/run_ios_chrome_perf_benchmarks_eg2tests_module'],
+        'out/Release-iphoneos',
+        cipd_input=cipd_input,
+        caches=caches)
+    quest.PropagateJob(
+        FakeJob('cafef00d', 'https://pinpoint/cafef00d', 'try',
+                'user@example.com', State(1), ['a'], 'some_batch_id', {}))
+
+    execution_a = quest.Start(
+        change.Change('a', variant=0), 'cas-instance', 'xxxxxxxx/111')
+    execution_b = quest.Start(
+        change.Change('b', variant=1), 'cas-instance', 'xxxxxxxx/111')
+
+    swarming_tasks_new.return_value = {'taskId': 'task id'}
+    execution_b.Poll()
+    execution_a.Poll()
+
+    self.assertEqual(swarming_tasks_new.call_count, 2)
+    self.assertNewTaskHasDimensions(
+        swarming_tasks_new, {
+            'taskSlices': [{
+                'expirationSecs': '86400',
+                'properties': {
+                    'casInputRoot': {
+                        'casInstance': 'cas-instance',
+                        'digest': {
+                            'hash': 'xxxxxxxx',
+                            'sizeBytes': 111,
+                        },
+                    },
+                    'command': [
+                        './bin/run_ios_chrome_perf_benchmarks_eg2tests_module',
+                        'arg',
+                    ],
+                    'relativeCwd': 'out/Release-iphoneos',
+                    'cipdInput': cipd_input,
+                    'caches': caches,
+                    'dimensions': DIMENSIONS + [{
+                        'key': 'id',
+                        'value': 'a',
+                    }],
+                    'executionTimeoutSecs': mock.ANY,
+                    'ioTimeoutSecs': mock.ANY,
+                }
+            }]
+        })
 
 
 @mock.patch('dashboard.services.swarming.IsBotAlive',

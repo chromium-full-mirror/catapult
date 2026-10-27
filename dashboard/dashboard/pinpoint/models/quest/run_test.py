@@ -57,8 +57,15 @@ def SwarmingTagsFromJob(job):
 
 class RunTest(quest.Quest):
 
-  def __init__(self, swarming_server, dimensions, extra_args, swarming_tags,
-               command, relative_cwd):
+  def __init__(self,
+               swarming_server,
+               dimensions,
+               extra_args,
+               swarming_tags,
+               command,
+               relative_cwd,
+               cipd_input=None,
+               caches=None):
     """RunTest Quest
 
     Args:
@@ -69,6 +76,14 @@ class RunTest(quest.Quest):
       swarming_tags: a dict of swarming tags.
       command: a list of strings to be provided to the Swarming task command.
       relative_cwd: a string indicating the working directory in the isolate.
+      cipd_input: a dict of CIPD packages to install in the Swarming task,
+          passed directly as Swarming task properties 'cipdInput' (using
+          Swarming API field names), e.g.:
+          {"packages": [{"packageName": "infra/tools/mac_toolchain/${platform}",
+          "version": "git_revision:...", "path": "."}]}
+      caches: a list of named cache dicts to mount in the Swarming task, passed
+          directly as Swarming task properties 'caches', e.g.:
+          [{"name": "xcode_ios_27a266a", "path": "Xcode.app"}]
     """
     self._swarming_server = swarming_server
     self._dimensions = dimensions
@@ -76,6 +91,8 @@ class RunTest(quest.Quest):
     self._swarming_tags = {} if not swarming_tags else swarming_tags
     self._command = command
     self._relative_cwd = relative_cwd
+    self._cipd_input = cipd_input
+    self._caches = caches
 
     # We want subsequent executions use the same bot as the first one.
     self._canonical_executions = []
@@ -94,7 +111,8 @@ class RunTest(quest.Quest):
             and self._canonical_executions == other._canonical_executions
             and self._command == other._command
             and self._relative_cwd == other._relative_cwd
-            and self._bots == other._bots
+            and self.cipd_input == other.cipd_input
+            and self.caches == other.caches and self._bots == other._bots
             and self._comparison_mode == other._comparison_mode
             and self._attempt_count == other._attempt_count
             and self._started_executions == other._started_executions)
@@ -113,6 +131,10 @@ class RunTest(quest.Quest):
       self._command = None
     if not hasattr(self, '_relative_cwd'):
       self._relative_cwd = None
+    if not hasattr(self, '_cipd_input'):
+      self._cipd_input = None
+    if not hasattr(self, '_caches'):
+      self._caches = None
 
   @property
   def command(self):
@@ -121,6 +143,14 @@ class RunTest(quest.Quest):
   @property
   def relative_cwd(self):
     return getattr(self, '_relative_cwd', 'out/Release')
+
+  @property
+  def cipd_input(self):
+    return getattr(self, '_cipd_input', None)
+
+  @property
+  def caches(self):
+    return getattr(self, '_caches', None)
 
   def PropagateJob(self, job):
     if not hasattr(self, '_swarming_tags'):
@@ -167,7 +197,9 @@ class RunTest(quest.Quest):
         change,
         command=self.command,
         relative_cwd=self.relative_cwd,
-        execution_timeout_secs=execution_timeout_secs)
+        execution_timeout_secs=execution_timeout_secs,
+        cipd_input=self.cipd_input,
+        caches=self.caches)
     self._started_executions[change].append(test_execution)
     return test_execution
 
@@ -285,8 +317,26 @@ class RunTest(quest.Quest):
     relative_cwd, command = cls._ComputeCommand(arguments)
     extra_test_args = cls._ExtraTestArgs(arguments)
     swarming_tags = cls._GetSwarmingTags(arguments)
-    return cls(swarming_server, dimensions, extra_test_args, swarming_tags,
-               command, relative_cwd)
+    # cipd_input and caches go directly into Swarming task properties and must
+    # use Swarming API field names:
+    #   cipd_input: {"packages": [{"packageName": "...", "version": "...",
+    #                              "path": "."}]}
+    #   caches: [{"name": "xcode_ios_27a266a", "path": "Xcode.app"}]
+    cipd_input = arguments.get('cipd_input')
+    if isinstance(cipd_input, str):
+      cipd_input = json.loads(cipd_input)
+    caches = arguments.get('caches')
+    if isinstance(caches, str):
+      caches = json.loads(caches)
+    return cls(
+        swarming_server,
+        dimensions,
+        extra_test_args,
+        swarming_tags,
+        command,
+        relative_cwd,
+        cipd_input=cipd_input,
+        caches=caches)
 
   @classmethod
   def _ExtraTestArgs(cls, arguments):
@@ -323,7 +373,9 @@ class _RunTestExecution(execution_module.Execution):
                change,
                command=None,
                relative_cwd='out/Release',
-               execution_timeout_secs=None):
+               execution_timeout_secs=None,
+               cipd_input=None,
+               caches=None):
     super().__init__()
     self._quest = containing_quest
     self._bot_id = None
@@ -338,6 +390,8 @@ class _RunTestExecution(execution_module.Execution):
     self._index = index
     self._change = change
     self._execution_timeout_secs = execution_timeout_secs
+    self._cipd_input = cipd_input
+    self._caches = caches
     self._task_id = None
 
   def __setstate__(self, state):
@@ -350,6 +404,10 @@ class _RunTestExecution(execution_module.Execution):
       self._relative_cwd = 'out/Release'
     if not hasattr(self, '_execution_timeout_secs'):
       self._execution_timeout_secs = None
+    if not hasattr(self, '_cipd_input'):
+      self._cipd_input = None
+    if not hasattr(self, '_caches'):
+      self._caches = None
 
   @property
   def bot_id(self):
@@ -366,6 +424,14 @@ class _RunTestExecution(execution_module.Execution):
   @property
   def execution_timeout_secs(self):
     return getattr(self, '_execution_timeout_secs')
+
+  @property
+  def cipd_input(self):
+    return getattr(self, '_cipd_input', None)
+
+  @property
+  def caches(self):
+    return getattr(self, '_caches', None)
 
   def _AsDict(self):
     details = []
@@ -596,6 +662,12 @@ class _RunTestExecution(execution_module.Execution):
       # Swarming requires that if 'command' is present in the request, that we
       # not provide 'extraArgs'.
       del properties['extraArgs']
+
+    if self.cipd_input:
+      properties['cipdInput'] = self.cipd_input
+
+    if self.caches:
+      properties['caches'] = self.caches
 
     body = {
         'realm':
