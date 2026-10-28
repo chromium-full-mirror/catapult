@@ -487,29 +487,40 @@ class BrowserFinderOptions(argparse.Namespace):
   def ParseAndroidEmulatorOptions(self):
     """Parses Android emulator args, and if necessary, starts an emulator.
 
-    No-ops if --avd-config is not specified or if an emulator is already
-    started.
+    No-ops if neither --avd-config is specified nor Fuchsia Cuttlefish is
+    supported, or if an emulator is already started.
 
     Performing this setup during argument parsing isn't ideal, but we need to
     set up the emulator sometime between arg parsing and browser finding.
     """
-    if not self.avd_config:
-      return
     if BrowserFinderOptions.emulator_environment:
       return
     build_android_dir = os.path.join(
         util.GetChromiumSrcDir(), 'build', 'android')
     if not os.path.exists(build_android_dir):
-      raise RuntimeError(
-          '--avd-config specified, but Chromium //build/android directory not '
-          'available')
+      if self.avd_config:
+        raise RuntimeError(
+            '--avd-config specified, but Chromium //build/android directory '
+            'not available')
+      return
+
+    if build_android_dir not in sys.path:
+      sys.path.append(build_android_dir)
+    if not self.avd_config:
+      # pylint: disable=import-error,import-outside-toplevel
+      from pylib.local.emulator import fuchsia_cuttlefish_emulator_environment
+      # pylint: enable=import-error,import-outside-toplevel
+      if not fuchsia_cuttlefish_emulator_environment.IsSupported():
+        return
+
     # Everything after this point only works if //build/android is actually
     # available, which we can't rely on, so use this to exit early in unittests.
     self._NoOpFunctionForTesting()
-    sys.path.append(build_android_dir)
+
     # pylint: disable=import-error,import-outside-toplevel
     from pylib import constants as pylib_constants
-    from pylib.local.emulator import local_emulator_environment
+    if self.avd_config:
+      from pylib.local.emulator import local_emulator_environment
     # pylint: enable=import-error,import-outside-toplevel
 
     # We need to call this so that the Chromium output directory is set if it
@@ -553,9 +564,15 @@ class BrowserFinderOptions(argparse.Namespace):
         self.emulator_enable_network = False
 
     avd_args = AvdArgs(self.avd_config)
-    BrowserFinderOptions.emulator_environment =\
-        local_emulator_environment.LocalEmulatorEnvironment(
-            avd_args, None, None)
+    if self.avd_config:
+      BrowserFinderOptions.emulator_environment =\
+          local_emulator_environment.LocalEmulatorEnvironment(
+              avd_args, None, None)
+    else:
+      assert fuchsia_cuttlefish_emulator_environment.IsSupported()
+      BrowserFinderOptions.emulator_environment = (
+          fuchsia_cuttlefish_emulator_environment.
+          FuchsiaCuttlefishEmulatorEnvironment(avd_args, None, None))
     BrowserFinderOptions.emulator_environment.SetUp()
     atexit_with_log.Register(BrowserFinderOptions.emulator_environment.TearDown)
 

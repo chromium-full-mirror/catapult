@@ -351,7 +351,8 @@ class ParseAndroidEmulatorOptionsTest(unittest.TestCase):
     browser_options.BrowserFinderOptions.emulator_environment =\
         self._old_emulator_environment
 
-  def testNoConfig(self):
+  @mock.patch('os.path.exists', return_value=False)
+  def testNoConfig(self, _):
     options = browser_options.BrowserFinderOptions()
     parser = options.CreateParser()
     parser.parse_args([])
@@ -377,3 +378,39 @@ class ParseAndroidEmulatorOptionsTest(unittest.TestCase):
     parser = options.CreateParser()
     with self.assertRaises(ParseAndroidEmulatorOptionsTest.EarlyExitException):
       parser.parse_args(['--avd-config=foo'])
+
+  @mock.patch('os.path.exists', return_value=True)
+  def testFuchsiaCuttlefishSupported(self, _):
+    cuttlefish_mock = mock.MagicMock()
+    cuttlefish_mock.IsSupported.return_value = True
+    emulator_mock = mock.MagicMock()
+    emulator_mock.fuchsia_cuttlefish_emulator_environment = cuttlefish_mock
+    with mock.patch.dict(
+        'sys.modules', {
+            'pylib.local.emulator':
+                emulator_mock,
+            'pylib.local.emulator.fuchsia_cuttlefish_emulator_environment':
+                cuttlefish_mock,
+        }):
+      options = browser_options.BrowserFinderOptions()
+      parser = options.CreateParser()
+      with self.assertRaises(
+          ParseAndroidEmulatorOptionsTest.EarlyExitException):
+        parser.parse_args([])
+
+  @mock.patch('os.path.exists', return_value=True)
+  def testFuchsiaCuttlefishNotSupported(self, _):
+    cuttlefish_mock = mock.MagicMock()
+    cuttlefish_mock.IsSupported.return_value = False
+    emulator_mock = mock.MagicMock()
+    emulator_mock.fuchsia_cuttlefish_emulator_environment = cuttlefish_mock
+    with mock.patch.dict(
+        'sys.modules', {
+            'pylib.local.emulator':
+                emulator_mock,
+            'pylib.local.emulator.fuchsia_cuttlefish_emulator_environment':
+                cuttlefish_mock,
+        }):
+      options = browser_options.BrowserFinderOptions()
+      parser = options.CreateParser()
+      parser.parse_args([])
