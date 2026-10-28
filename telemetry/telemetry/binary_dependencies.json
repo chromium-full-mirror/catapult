@@ -49,6 +49,10 @@
           "cloud_storage_hash": "b0c6b5bde3f4e3148440d950b5db911fa57aec5f",
           "download_path": "bin/android/x86/clear_system_cache"
         },
+        "android_x86_64": {
+          "cloud_storage_hash": "ec6f7783379ed958451bdf637919da31bebf5e72",
+          "download_path": "bin/android/x64/clear_system_cache"
+        },
         "linux_x86_64": {
           "cloud_storage_hash": "158e9cfe11f85e295783b67f8fed55f6eb6499b3",
           "download_path": "bin/linux/x86_64/clear_system_cache"

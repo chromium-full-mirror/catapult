@@ -35,7 +35,7 @@ SUPPORTED_DEP_PLATFORMS = (
     'linux_aarch64', 'linux_x86_64', 'linux_armv7l', 'linux_mips',
     'mac_x86_64', 'mac_arm64',
     'win_x86', 'win_AMD64', 'win_ARM',
-    'android_arm64-v8a', 'android_armeabi-v7a', 'android_arm', 'android_x64',
+    'android_arm64-v8a', 'android_armeabi-v7a', 'android_arm', 'android_x86_64',
     'android_x86'
 )
 
@@ -52,7 +52,7 @@ PLATFORMS_TO_DOWNLOAD_FOLDER_MAP = {
     'android_arm64-v8a': 'bin/android/arm64-v8a',
     'android_armeabi-v7a': 'bin/android/armeabi-v7a',
     'android_arm': 'bin/android/arm',
-    'android_x64': 'bin/android/x64',
+    'android_x86_64': 'bin/android/x64',
     'android_x86': 'bin/android/x86',
 }
 
