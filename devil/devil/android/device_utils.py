@@ -313,11 +313,12 @@ _GOOGLE_FEATURES_RE = re.compile(r'^\s*com\.google\.')
 # On Android >= 15, "ro.product.device" starts with "vsoc"
 _EMULATOR_RE = re.compile(r'^(generic_|emulator64_|emu64x|vsoc_).*$')
 
-# TODO(crbug.com/532501271): Remove trichromelibrary usage.
 # Regular expressions for determining if a package is installed using the
 # output of `dumpsys package`.
 # Matches lines like "Package [com.google.android.youtube] (c491050):".
-# or "Package [org.chromium.trichromelibrary_425300033] (e476383):"
+# or "Package [org.chromium.trichromelibrary_425300033] (e476383):" (kept for
+# backwards compatibility, e.g. tools/bisect-builds.py installing pre-M152
+# Trichrome builds).
 _DUMPSYS_PACKAGE_RE_STR =\
     r'^\s*Package\s*\[{package}\]\s*\(\w*\):$'
 # Regular expressions for determining if a package is installed for a user

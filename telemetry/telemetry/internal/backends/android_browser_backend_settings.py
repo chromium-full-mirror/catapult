@@ -62,7 +62,6 @@ class _BackendSettings:
   supports_tab_control: bool
   supports_spki_list: bool
   embedder_apk_name: Optional[str] = None
-  additional_apk_name: Optional[str] = None
   sdk_dependent_activities: List[_SdkDependentActivity] = dataclasses.field(
       default_factory=list)
   sdk_dependent_actions: List[_SdkDependentAction] = dataclasses.field(
@@ -122,10 +121,6 @@ class AndroidBrowserBackendSettings(_BackendSettings):
   @property
   def requires_embedder(self):
     return self.embedder_apk_name is not None
-
-  @property
-  def has_additional_apk(self):
-    return self.additional_apk_name is not None
 
   def GetDevtoolsRemotePort(self, device, package=None):
     del device, package
@@ -188,7 +183,6 @@ class GenericChromeBackendSettings(AndroidBrowserBackendSettings):
     kwargs.setdefault('embedder_apk_name', None)
     kwargs.setdefault('supports_tab_control', True)
     kwargs.setdefault('supports_spki_list', True)
-    kwargs.setdefault('additional_apk_name', None)
     super().__init__(*args, **kwargs)
 
 
@@ -200,21 +194,6 @@ class GenericChromeBundleBackendSettings(GenericChromeBackendSettings):
     # bin directory instead of being output to the apk directory at compile
     # time like a normal APK.
     return os.path.join('..', 'bin', self.apk_name)
-
-  # TODO(crbug.com/532501271): Investigate. Can the additional apk parameter
-  # go away?
-  def FindSupportApks(self, apk_path):
-    # Trichrome bundles also require their corresponding library apks to be
-    # installed, but the library apks are in the apks directory and the bundles
-    # are in the bin directory.
-    if apk_path is None or self.additional_apk_name is None:
-      return []
-    additional_apk_path = os.path.normpath(
-        os.path.join(os.path.dirname(apk_path), '..', 'apks',
-                     self.additional_apk_name))
-    assert os.path.exists(additional_apk_path), (
-        f'{additional_apk_path} is missing for {apk_path}')
-    return [additional_apk_path]
 
 
 class ChromeBackendSettings(GenericChromeBackendSettings):
@@ -235,7 +214,6 @@ class WebViewBasedBackendSettings(AndroidBrowserBackendSettings):
     # TODO(crbug.com/753948): Switch to True when spki-list support is
     # implemented on WebView.
     kwargs.setdefault('supports_spki_list', False)
-    kwargs.setdefault('additional_apk_name', None)
     super().__init__(*args, **kwargs)
 
   def GetDevtoolsRemotePort(self, device, package=None):
@@ -296,12 +274,6 @@ class WebViewBackendSettings(WebViewBasedBackendSettings):
           os.path.dirname(apk_path), self.embedder_apk_name)
       if os.path.exists(embedder_apk_path):
         all_apks.append(embedder_apk_path)
-      if self.additional_apk_name is not None:
-        additional_apk_path = os.path.join(
-            os.path.dirname(apk_path), self.additional_apk_name)
-        assert os.path.exists(additional_apk_path), (
-            f'{additional_apk_path} is missing for {apk_path}')
-        all_apks.append(additional_apk_path)
     return all_apks
 
   def IsWebView(self):
@@ -331,12 +303,6 @@ class WebViewBundleBackendSettings(WebViewBackendSettings):
           os.path.dirname(apk_path), '..', 'apks', self.embedder_apk_name)
       if os.path.exists(embedder_apk_path):
         all_apks.append(embedder_apk_path)
-      if self.additional_apk_name is not None:
-        additional_apk_path = os.path.join(
-            os.path.dirname(apk_path), '..', 'apks', self.additional_apk_name)
-        assert os.path.exists(additional_apk_path), (
-            f'{additional_apk_path} is missing for {apk_path}')
-        all_apks.append(additional_apk_path)
     return all_apks
 
 
@@ -357,8 +323,7 @@ ANDROID_CONTENT_SHELL = AndroidBrowserBackendSettings(
     apk_name='ContentShell.apk',
     embedder_apk_name=None,
     supports_tab_control=False,
-    supports_spki_list=True,
-    additional_apk_name=None)
+    supports_spki_list=True)
 
 ANDROID_WEBVIEW = WebViewBackendSettings(
     browser_type='android-webview')

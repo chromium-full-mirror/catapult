@@ -153,7 +153,7 @@ class StartTest(unittest.TestCase):
   def testNotificationEmbedderCrossbench(self):
     arguments = dict(_BASE_ARGUMENTS)
     arguments['benchmark'] = 'notification.embedder.crossbench'
-    arguments['browser'] = 'android-webview-trichrome-google-bundle'
+    arguments['browser'] = 'android-webview-standalone-google-bundle'
     quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
     change = mock.MagicMock(spec=change_module.Change)
     change.commits = ()
@@ -161,7 +161,7 @@ class StartTest(unittest.TestCase):
     self.assertEqual(execution._extra_args, [
         '--benchmark-display-name=notification.embedder.crossbench',
         '--benchmarks=embedder',
-        '--browser=android-webview-trichrome-google-bundle',
+        '--browser=android-webview-standalone-google-bundle',
     ] + run_performance_test._DEFAULT_EXTRA_ARGS + [
         '--results-label',
         str(change),

@@ -123,8 +123,7 @@ class PossibleAndroidBrowser(possible_browser.PossibleBrowser):
       self._assume_browser_already_installed = True
 
     self._support_apk_list = []
-    if (self._backend_settings.requires_embedder or
-        self._backend_settings.has_additional_apk):
+    if self._backend_settings.requires_embedder:
       if finder_options.webview_embedder_apk:
         self._support_apk_list = finder_options.webview_embedder_apk
       else:
