@@ -2690,10 +2690,10 @@ class DeviceUtils(object):
       if os.path.isdir(host_path):
         device_dirs_to_push_to.add(device_dir)
         for root, _, filenames in os.walk(host_path):
-          # ignore hidden directories
-          if os.path.sep + '.' in root:
-            continue
           relative_dir = os.path.relpath(root, host_path).rstrip('.')
+          # Ignore hidden directories below `host_path`.
+          if relative_dir.startswith('.') or os.path.sep + '.' in relative_dir:
+            continue
           device_path = posixpath.join(device_dir, relative_dir).rstrip('/')
           expected_device_nodes.add(device_path)
           device_dirs_to_push_to.add(device_path)
