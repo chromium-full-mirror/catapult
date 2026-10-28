@@ -8,10 +8,10 @@ from __future__ import absolute_import
 import google_auth_httplib2
 import google.auth
 import http.client as http_client
+import httplib2
 import json
 import socket
 
-from google.appengine.api import urlfetch_errors
 from urllib.parse import urlencode
 
 EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email'
@@ -90,8 +90,7 @@ def Request(url, method='GET', body=None, **parameters):
     content = _RequestAndProcessHttpErrors(url, **kwargs)
   except NotFoundError:
     raise
-  except (http_client.HTTPException, socket.error,
-          urlfetch_errors.InternalTransientError):
+  except (http_client.HTTPException, httplib2.HttpLib2Error, socket.error):
     # Retry once.
     content = _RequestAndProcessHttpErrors(url, **kwargs)
 
