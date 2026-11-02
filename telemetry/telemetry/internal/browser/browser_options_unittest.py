@@ -346,6 +346,9 @@ class ParseAndroidEmulatorOptionsTest(unittest.TestCase):
     self.breakpoint_mock = patcher.start()
     self.breakpoint_mock.side_effect =\
         ParseAndroidEmulatorOptionsTest.EarlyExitException
+    platform_patcher = mock.patch('sys.platform', 'linux')
+    self.addCleanup(platform_patcher.stop)
+    platform_patcher.start()
 
   def tearDown(self):
     browser_options.BrowserFinderOptions.emulator_environment =\
@@ -414,3 +417,18 @@ class ParseAndroidEmulatorOptionsTest(unittest.TestCase):
       options = browser_options.BrowserFinderOptions()
       parser = options.CreateParser()
       parser.parse_args([])
+
+  @mock.patch('os.path.exists',
+              side_effect=lambda path: not path.endswith('devil_chromium.py'))
+  def testFuchsiaCuttlefishMissingDevilChromium(self, _):
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    parser.parse_args([])
+
+  @mock.patch('sys.platform', 'darwin')
+  @mock.patch('os.path.exists', return_value=True)
+  def testNonLinux(self, _):
+    for args in ([], ['--avd-config=foo']):
+      options = browser_options.BrowserFinderOptions()
+      parser = options.CreateParser()
+      parser.parse_args(args)

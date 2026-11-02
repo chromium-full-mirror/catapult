@@ -495,9 +495,11 @@ class BrowserFinderOptions(argparse.Namespace):
     """
     if BrowserFinderOptions.emulator_environment:
       return
+    if not sys.platform.startswith('linux'):
+      return
     build_android_dir = os.path.join(
         util.GetChromiumSrcDir(), 'build', 'android')
-    if not os.path.exists(build_android_dir):
+    if not os.path.exists(os.path.join(build_android_dir, 'devil_chromium.py')):
       if self.avd_config:
         raise RuntimeError(
             '--avd-config specified, but Chromium //build/android directory '
