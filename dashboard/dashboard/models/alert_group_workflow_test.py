@@ -106,6 +106,7 @@ class AlertGroupWorkflowTest(testing_common.TestCase):
     perf_comment_post_patcher.start()
     self.addCleanup(perf_comment_post_patcher.stop)
     feature_flags.SANDWICH_VERIFICATION = True
+    self.addCleanup(setattr, feature_flags, 'SANDWICH_VERIFICATION', True)
 
   def _FindDuplicateGroupsMock(self, key_string):
     key = ndb.Key('AlertGroup', key_string)
