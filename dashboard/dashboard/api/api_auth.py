@@ -52,6 +52,9 @@ OAUTH_CLIENT_ID_ALLOWLIST = [
     '110941947140990718675',
     # This oauth client id is used for leszek-perf / skia-query.
     '404979445346-jraf8h5mdnutl28n6j67acra6rp7bh5n.apps.googleusercontent.com',
+    # This oauth client id is used by Google internal AI agent identities
+    # via CorpLogin Credential Exchange Service (CXF).
+    '913411032810-e4oicp8vj4or7tnj8vkva5riiou4fbur.apps.googleusercontent.com',
 ]
 if utils.IsStagingEnvironment():
   OAUTH_CLIENT_ID_ALLOWLIST = [
