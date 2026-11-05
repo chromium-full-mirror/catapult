@@ -112,6 +112,7 @@ class TabListBackend(inspector_backend_list.InspectorBackendList):
   def ShouldIncludeContext(self, context):
     ignored_urls = [
         'chrome://omnibox-popup.top-chrome/',
+        'chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html',
         'chrome://webui-toolbar.top-chrome/',
         'chrome://oobe',
     ]

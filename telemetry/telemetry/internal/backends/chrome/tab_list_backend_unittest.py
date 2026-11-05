@@ -3,9 +3,37 @@
 # found in the LICENSE file.
 
 from __future__ import absolute_import
+import unittest
+from unittest import mock
+
 from telemetry.core import exceptions
 from telemetry import decorators
+from telemetry.internal.backends.chrome import tab_list_backend
 from telemetry.testing import tab_test_case
+
+
+class TabListBackendShouldIncludeContextTest(unittest.TestCase):
+
+  def setUp(self):
+    browser_backend = mock.Mock()
+    browser_backend.browser.supports_inspecting_webui = False
+    self._backend = tab_list_backend.TabListBackend(browser_backend)
+
+  def testIncludesPages(self):
+    self.assertTrue(
+        self._backend.ShouldIncludeContext({
+            'type': 'page',
+            'url': 'https://www.example.com/'
+        }))
+
+  def testExcludesWebUIOmniboxPopups(self):
+    for url in ('chrome://omnibox-popup.top-chrome/',
+                'chrome://omnibox-popup.top-chrome/omnibox_popup_aim.html'):
+      self.assertFalse(
+          self._backend.ShouldIncludeContext({
+              'type': 'page',
+              'url': url
+          }), url)
 
 
 class TabListBackendTest(tab_test_case.TabTestCase):
