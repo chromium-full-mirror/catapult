@@ -132,6 +132,7 @@ class AndroidPlatformBackend(
         'AndroidPlatformBackend can only be initialized from remote device')
     super().__init__(device)
     self._device = device_utils.DeviceUtils(device.device_id)
+    self._device.WaitUntilFullyBooted()
     # Disable Play Store on Android devices.
     if self._device.IsApplicationInstalled('com.android.vending'):
       self._device.RunShellCommand(

@@ -35,9 +35,10 @@ class AndroidPlatformBackendTest(unittest.TestCase):
 
     self.device_patcher = mock.patch.multiple(
         device_utils.DeviceUtils,
-        RunShellCommand = mock.MagicMock(return_value=[""]),
+        RunShellCommand=mock.MagicMock(return_value=[""]),
         HasRoot=mock.MagicMock(return_value=True),
-        GetProp=mock.MagicMock(side_effect=get_prop))
+        GetProp=mock.MagicMock(side_effect=get_prop),
+        WaitUntilFullyBooted=mock.MagicMock())
     self.device_patcher.start()
 
   def tearDown(self):
@@ -50,6 +51,21 @@ class AndroidPlatformBackendTest(unittest.TestCase):
   def CreatePlatformBackendForTest():
     return android_platform_backend.AndroidPlatformBackend(
         android_device.AndroidDevice('12345'), True)
+
+  def testWaitUntilFullyBootedCalledBeforeIsApplicationInstalled(self):
+    call_order = []
+    with mock.patch.object(device_utils.DeviceUtils,
+                           'WaitUntilFullyBooted',
+                           side_effect=lambda *args, **kwargs: call_order.
+                           append('WaitUntilFullyBooted')):
+      with mock.patch.object(
+          device_utils.DeviceUtils,
+          'IsApplicationInstalled',
+          side_effect=lambda *args, **kwargs:
+          (call_order.append('IsApplicationInstalled'), False)[1]):
+        self.CreatePlatformBackendForTest()
+    self.assertEqual(call_order,
+                     ['WaitUntilFullyBooted', 'IsApplicationInstalled'])
 
   def testGetOSVersionNameOlderOS(self):
 
