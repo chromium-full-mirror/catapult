@@ -35,7 +35,12 @@ tr.exportTo('tr.ui.b', function() {
     if (!el) {
       throw new Error('Element not found: ' + selector);
     }
-    const node = doc.importNode(el.content, true);
+    // Always call importNode on the main `document` rather than `doc`. Under
+    // the WebComponentsV0 polyfill, CustomElements only hooks `importNode` on
+    // the unwrapped `window.document` to synchronously upgrade custom elements,
+    // whereas `doc` may be an HTMLImports sub-document or a ShadowDOMPolyfill
+    // Document wrapper (e.g. from `document._currentScript.ownerDocument`).
+    const node = document.importNode(el.content, true);
     // Under the WebComponentsV0 HTMLImports polyfill, when a <template> from
     // an imported HTML document (such as /tracing/ui/base/quad_stack_view.html)
     // is cloned and inserted into the main document (e.g.
