@@ -12,6 +12,7 @@ google-cloud-datastore>=2.23.0
 
 gunicorn==22.0.0
 
+pip>=26.2
 protobuf>=6.33.5
 pyasn1>=0.6.5
 urllib3>=2.6.3
