@@ -5,10 +5,11 @@ ENV PATH=/usr/local/depot_tools:${PATH}
 # The latest version is in sid repo. So need to specify the
 # version of dependency to avoid version conflix if you want
 # to use "stable" one.
-RUN apt-get --allow-releaseinfo-change update && apt-get install -y \
+RUN apt-get --allow-releaseinfo-change update && apt-get upgrade -y && apt-get install -y \
   libprotoc23 \
   protobuf-compiler \
   git \
+  && rm -rf /var/lib/apt/lists/* \
   && git clone https://chromium.googlesource.com/chromium/tools/depot_tools /usr/local/depot_tools \
   && /usr/local/depot_tools/vpython3 -c ''
 
