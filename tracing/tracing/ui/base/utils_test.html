@@ -47,8 +47,7 @@ tr.b.unittest.testSuite(function() {
   const THIS_DOC =
       (document._currentScript || document.currentScript).ownerDocument;
 
-  // See https://crbug.com/1143376.
-  skipTest('instantiateTemplatePolymer', function() {
+  test('instantiateTemplatePolymer', function() {
     const e = tr.ui.b.instantiateTemplate(
         '#instantiate-template-polymer-test',
         THIS_DOC);
@@ -56,8 +55,7 @@ tr.b.unittest.testSuite(function() {
     assert.strictEqual(e.children[0].testProperty, 'Test');
   });
 
-  // See https://crbug.com/1143376.
-  skipTest('instantiateTemplateMultipleTemplates', function() {
+  test('instantiateTemplateMultipleTemplates', function() {
     const outerElement = tr.ui.b.instantiateTemplate(
         '#multiple-template-test',
         THIS_DOC);
@@ -65,7 +63,7 @@ tr.b.unittest.testSuite(function() {
     assert.strictEqual(outerElement.children[1].testProperty, 'Test');
 
     // Make sure we can still instantiate inner templates, if we need them.
-    const innerElement = THIS_DOC.importNode(
+    const innerElement = document.importNode(
         outerElement.children[0].content, true);
     assert.strictEqual(innerElement.children.length, 2);
     assert.strictEqual(innerElement.children[0].testProperty, 'Test');

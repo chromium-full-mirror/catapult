@@ -12,8 +12,7 @@ found in the LICENSE file.
 <script>
 'use strict';
 
-// See https://crbug.com/1143376.
-tr.b.unittest.skippedTestSuite(function() {
+tr.b.unittest.testSuite(function() {
   const ProfilingView = tr.ui.e.about_tracing.ProfilingView;
 
   test('protobufTraceDetection', function() {
