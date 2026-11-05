@@ -17,4 +17,4 @@ pyasn1>=0.6.5
 urllib3>=2.6.3
 
 Werkzeug>=3.1.9
-setuptools>=78.1.1
+setuptools>=83.0.0
