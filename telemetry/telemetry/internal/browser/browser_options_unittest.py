@@ -425,6 +425,26 @@ class ParseAndroidEmulatorOptionsTest(unittest.TestCase):
     parser = options.CreateParser()
     parser.parse_args([])
 
+  @mock.patch('os.path.exists',
+              side_effect=lambda path: not path.endswith('gn_helpers.py'))
+  def testFuchsiaCuttlefishMissingGnHelpers(self, _):
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    with mock.patch.dict('sys.modules', {'pylib.local.emulator': None}):
+      parser.parse_args([])
+    with self.assertRaises(RuntimeError):
+      parser.parse_args(['--avd-config=foo'])
+
+  @mock.patch('os.path.exists',
+              side_effect=lambda path: not path.endswith('run_cuttlefish.py'))
+  def testFuchsiaCuttlefishMissingRunCuttlefish(self, _):
+    options = browser_options.BrowserFinderOptions()
+    parser = options.CreateParser()
+    with mock.patch.dict('sys.modules', {'pylib.local.emulator': None}):
+      parser.parse_args([])
+    with self.assertRaises(ParseAndroidEmulatorOptionsTest.EarlyExitException):
+      parser.parse_args(['--avd-config=foo'])
+
   @mock.patch('sys.platform', 'darwin')
   @mock.patch('os.path.exists', return_value=True)
   def testNonLinux(self, _):

@@ -497,13 +497,25 @@ class BrowserFinderOptions(argparse.Namespace):
       return
     if not sys.platform.startswith('linux'):
       return
-    build_android_dir = os.path.join(
-        util.GetChromiumSrcDir(), 'build', 'android')
-    if not os.path.exists(os.path.join(build_android_dir, 'devil_chromium.py')):
+    build_dir = os.path.join(util.GetChromiumSrcDir(), 'build')
+    build_android_dir = os.path.join(build_dir, 'android')
+    # devil_chromium.py imports //build/gn_helpers.py, which is not packaged in
+    # partial Telemetry archives (such as ChromeOS telemetry_dep built from
+    # tools/perf/bootstrap_deps) even when //build/android is present.
+    if (not os.path.exists(os.path.join(build_android_dir, 'devil_chromium.py'))
+        or not os.path.exists(os.path.join(build_dir, 'gn_helpers.py'))):
       if self.avd_config:
         raise RuntimeError(
-            '--avd-config specified, but Chromium //build/android directory '
-            'not available')
+            '--avd-config specified, but Chromium //build/android or '
+            '//build/gn_helpers.py not available')
+      return
+    # Avoid importing //build/android/pylib on non-Android environments (such as
+    # ChromeOS DUTs) when --avd-config is not specified and the Fuchsia
+    # Cuttlefish runner script is absent.
+    if (not self.avd_config
+        and not os.path.exists(
+            os.path.join(build_dir, 'fuchsia', 'starview',
+                         'run_cuttlefish.py'))):
       return
 
     if build_android_dir not in sys.path:
