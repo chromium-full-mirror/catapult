@@ -1,4 +1,4 @@
-Flask==2.2.2
+Flask>=3.1.0
 
 google-api-python-client==2.51.0
 
@@ -23,4 +23,4 @@ python-dateutil>=2.8.2
 # updated.
 urllib3==1.26.1
 
-Werkzeug==2.2.2
+Werkzeug>=3.1.9
