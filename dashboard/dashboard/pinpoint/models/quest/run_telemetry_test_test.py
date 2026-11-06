@@ -341,3 +341,119 @@ class FromDictTest(unittest.TestCase):
         arguments['story'] = story
       with self.assertRaises(ValueError):
         run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+  def testCrossbenchEmbedderSkipsStoriesArg(self):
+    # *.embedder.crossbench trace_processor metrics carry per-CUJ story names on
+    # the dashboard, which ReadValue needs in arguments['story'], but cb.py
+    # embedder configures its scenario via --cuj-config and rejects --stories.
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'embedder.crossbench'
+    arguments['story'] = 'agsa-simple'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-simple',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-simple',
+        })
+    self.assertEqual(arguments['story'], 'agsa-simple')
+
+  def testCrossbenchGmaEmbedderSkipsStoriesArg(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'gma.embedder.crossbench'
+    arguments['story'] = 'gma-test-app-init-and-load-interstitial-again'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=gma.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'gma.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'gma-test-app-init-and-load-interstitial-again',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'gma.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'gma-test-app-init-and-load-interstitial-again',
+        })
+    self.assertEqual(arguments['story'],
+                     'gma-test-app-init-and-load-interstitial-again')
+
+  def testCrossbenchShellEmbedderSkipsStoriesArg(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'shell.embedder.crossbench'
+    arguments['story'] = 'staggered-wv-startup'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=shell.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'shell.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'staggered-wv-startup',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'shell.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'staggered-wv-startup',
+        })
+    self.assertEqual(arguments['story'], 'staggered-wv-startup')
+
+  def testCrossbenchNotificationEmbedderSkipsStoriesArg(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'notification.embedder.crossbench'
+    arguments['story'] = 'agsa-notification'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=notification.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'notification.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-notification',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'notification.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-notification',
+        })
+    self.assertEqual(arguments['story'], 'agsa-notification')

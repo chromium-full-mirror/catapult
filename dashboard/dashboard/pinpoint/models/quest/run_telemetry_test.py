@@ -309,9 +309,10 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
 
   @classmethod
   def _CrossbenchExtraTestArgs(cls, benchmark, arguments):
+    crossbench_name = _CROSSBENCH_NAME[benchmark]
     extra_test_args = []
     extra_test_args.append(f'--benchmark-display-name={benchmark}')
-    extra_test_args.append(f'--benchmarks={_CROSSBENCH_NAME[benchmark]}')
+    extra_test_args.append(f'--benchmarks={crossbench_name}')
 
     story = arguments.get('story')
     if benchmark == 'web_power.crossbench':
@@ -324,10 +325,11 @@ class RunTelemetryTest(run_performance_test.RunPerformanceTest):
       # to --pageset-repeat=1 for Telemetry).
       extra_test_args.append('--repetitions=1')
 
-    if story and story != 'default':
+    if story and story != 'default' and crossbench_name != 'embedder':
       # Without this, Pinpoint runs every story of the benchmark on every
       # revision it tests, which for web_power.crossbench means hours per
-      # attempt instead of minutes.
+      # attempt instead of minutes. Embedder benchmarks select their scenario
+      # via --cuj-config and do not accept --stories.
       extra_test_args.append(
           f'--stories={cls._CrossbenchStoryFilter(benchmark, story)}')
 
