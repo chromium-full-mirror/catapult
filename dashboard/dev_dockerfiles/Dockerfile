@@ -1,4 +1,4 @@
-FROM google/cloud-sdk:468.0.0
+FROM google/cloud-sdk:565.0.0
 
 ENV PATH=/usr/local/depot_tools:${PATH}
 
@@ -6,7 +6,6 @@ ENV PATH=/usr/local/depot_tools:${PATH}
 # version of dependency to avoid version conflix if you want
 # to use "stable" one.
 RUN apt-get --allow-releaseinfo-change update && apt-get upgrade -y && apt-get install -y \
-  libprotoc23 \
   protobuf-compiler \
   git \
   && rm -rf /var/lib/apt/lists/* \
