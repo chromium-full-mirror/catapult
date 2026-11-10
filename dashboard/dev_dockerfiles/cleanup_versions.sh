@@ -23,12 +23,23 @@ else
 fi
 
 date_to_remove=`date -I --date="-${days} day"`
+project_id="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
+region="${REGION:-us-central1}"
 for SERVICE in "$@"; do
-  gcloud app versions list \
+  versions=$(gcloud app versions list \
     --format="table[no-heading](VERSION.ID)" \
     --filter="SERVICE=${SERVICE} AND
               TRAFFIC_SPLIT=0 AND
-              LAST_DEPLOYED.date()<${date_to_remove}" \
-  | xargs --no-run-if-empty gcloud app versions delete -s ${SERVICE}
+              LAST_DEPLOYED.date()<${date_to_remove}")
+  if [[ -n "${versions}" ]]; then
+    echo "${versions}" | xargs --no-run-if-empty gcloud app versions delete -s "${SERVICE}"
+    if [[ -n "${project_id}" ]]; then
+      for version in ${versions}; do
+        gcloud artifacts docker images delete \
+          "${region}-docker.pkg.dev/${project_id}/gae-flexible/${SERVICE}.${version}" \
+          --delete-tags --quiet || true
+      done
+    fi
+  fi
 done
 
