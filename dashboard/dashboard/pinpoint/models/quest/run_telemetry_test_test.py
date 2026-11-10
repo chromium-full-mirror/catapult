@@ -187,6 +187,33 @@ class StartTest(unittest.TestCase):
     ])
     self.assertEqual(execution.execution_timeout_secs, 5400)
 
+  def testJsBridgeEmbedderCrossbench(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'js_bridge.embedder.crossbench'
+    arguments['browser'] = 'android-webview-standalone-google-bundle'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+    change = mock.MagicMock(spec=change_module.Change)
+    change.commits = ()
+    execution = quest.Start(change, 'https://isolate.server', 'isolate hash')
+    self.assertEqual(execution._extra_args, [
+        '--benchmark-display-name=js_bridge.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=android-webview-standalone-google-bundle',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS + [
+        '--results-label',
+        str(change),
+        '--embedder=webview_embedder',
+        '--splashscreen=skip',
+        '--probe-config=../../third_party/crossbench/config/team/woa/'
+        'wv_shell_memory.probe.config.hjson',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/'
+        'js_bridge_cuj_config.hjson',
+        '--android-activity=JsBridgeActivity',
+        '--repetitions=25',
+        '--cool-down-threshold=moderate',
+    ])
+    self.assertEqual(execution.execution_timeout_secs, 5400)
+
 
 class FromDictTest(unittest.TestCase):
 
@@ -457,3 +484,49 @@ class FromDictTest(unittest.TestCase):
             'storyfilter': 'agsa-notification',
         })
     self.assertEqual(arguments['story'], 'agsa-notification')
+
+  def testCrossbenchJsBridgeEmbedder(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'js_bridge.embedder.crossbench'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=js_bridge.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'js_bridge.embedder.crossbench',
+            'hasfilter': '0',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+
+  def testCrossbenchJsBridgeEmbedderSkipsStoriesArg(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'js_bridge.embedder.crossbench'
+    arguments['story'] = 'js-bridge-memory'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=js_bridge.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'js_bridge.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'js-bridge-memory',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'js_bridge.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'js-bridge-memory',
+        })
+    self.assertEqual(arguments['story'], 'js-bridge-memory')

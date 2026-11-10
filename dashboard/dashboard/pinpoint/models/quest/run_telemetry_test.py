@@ -104,6 +104,7 @@ _CROSSBENCH_NAME = {
     # Embedder
     'embedder.crossbench': 'embedder',
     'gma.embedder.crossbench': 'embedder',
+    'js_bridge.embedder.crossbench': 'embedder',
     'shell.embedder.crossbench': 'embedder',
     'notification.embedder.crossbench': 'embedder',
     # Loading
@@ -155,6 +156,15 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/hosts:/data/local/tmp/hosts',
         '--embedder-push-files=/b/swarming/w/ir/third_party/crossbench/config/team/woa/dnsmasq.conf:/data/local/tmp/dnsmasq.conf',
         '--embedder-push-files=/b/swarming/w/ir/clank/android_webview/tools/crossbench_config/cipd/arm64/dummy_vpn.apk:/data/local/tmp/dummy_vpn.apk',
+    ),
+    'js_bridge.embedder.crossbench': (
+        '--embedder=webview_embedder',
+        '--splashscreen=skip',
+        '--probe-config=../../third_party/crossbench/config/team/woa/wv_shell_memory.probe.config.hjson',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/js_bridge_cuj_config.hjson',
+        '--android-activity=JsBridgeActivity',
+        '--repetitions=25',
+        '--cool-down-threshold=moderate',
     ),
     'shell.embedder.crossbench': (
         '--wpr=crossbench_android_loading_000.wprgo',
