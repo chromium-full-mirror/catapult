@@ -79,7 +79,7 @@ steps:
   ]
   waitFor: ['-']
 substitutions:
-  _RUNTIME: 'python311'
+  _RUNTIME: 'python313'
   _REGION: 'us-central1'
   _VERSION: 'prod'
   _SERVICE_ACCOUNT: 'chromeperf@appspot.gserviceaccount.com'

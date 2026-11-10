@@ -4,8 +4,8 @@ runtime: python
 env: flex
 
 runtime_config:
-  operating_system: "ubuntu22"
-  runtime_version: "3.11"
+  operating_system: "ubuntu24"
+  runtime_version: "3.12"
 
 entrypoint: gunicorn -b:$PORT -w 8 main:APP
 
