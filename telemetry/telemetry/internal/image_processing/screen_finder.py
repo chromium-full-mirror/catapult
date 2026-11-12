@@ -238,7 +238,9 @@ class ScreenFinder():
       The intersections, represented as a tuple of (point, line, line) of the
       points and the lines that intersect there of all lines in the array that
       are more than 45 degrees apart."""
-    intersections = np.empty((0, 3), np.float32)
+    # Each row holds (point, line_i, line_j) of differing lengths (2, 4, 4),
+    # which requires dtype=object in NumPy 1.24+.
+    intersections = np.empty((0, 3), dtype=object)
     for line_i, line_j in itertools.combinations(lines, 2):
       # Filter lines that are less than 45 (or greater than 135) degrees
       # apart.
@@ -255,8 +257,8 @@ class ScreenFinder():
           and self._lost_corner_frames <= self.RESET_AFTER_N_BAD_FRAMES
           and not self._PointIsCloseToPreviousCorners(point)):
         continue
-      intersections = np.vstack((intersections, np.array(
-          (point, line_i, line_j))))
+      intersections = np.vstack(
+          (intersections, np.array((point, line_i, line_j), dtype=object)))
     return intersections
 
   def _PointIsCloseToPreviousCorners(self, point):

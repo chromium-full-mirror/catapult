@@ -14,10 +14,8 @@ np = external_modules.ImportRequiredModule('numpy')
 def AreLinesOrthogonal(line1, line2, tolerance):
   """Returns true if lines are within tolerance radians of being orthogonal."""
   # Map each line onto an angle between 0 and 180.
-  theta1 = np.arctan2(np.float(line1[1] - line1[3]),
-                      np.float(line1[0] - line1[2]))
-  theta2 = np.arctan2(np.float(line2[1] - line2[3]),
-                      np.float(line2[0] - line2[2]))
+  theta1 = np.arctan2(float(line1[1] - line1[3]), float(line1[0] - line1[2]))
+  theta2 = np.arctan2(float(line2[1] - line2[3]), float(line2[0] - line2[2]))
   angle2 = abs(theta2 - theta1)
   if angle2 >= np.pi:
     angle2 -= np.pi
