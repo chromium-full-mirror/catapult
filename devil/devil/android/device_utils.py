@@ -3850,20 +3850,43 @@ class DeviceUtils(object):
         return []
       raise
 
-  def GetUidForPackage(self, package_name):
+  @decorators.WithTimeoutAndRetriesFromInstance()
+  def GetUidForPackage(self, package_name, timeout=None, retries=None):
     """Get user id for package name on device
+
+    On Android O+, this asks `pm list packages -U --user <user_id>`, which
+    returns the uid for |target_user| (or the system user if unset). Older
+    versions read `userId=` from `dumpsys package`.
 
     Args:
       package_name: Package name installed on device
+      timeout: timeout in seconds
+      retries: number of retries
 
     Returns:
       A string containing the package UID, and if the package
-      is not installed then None
+      is not installed (for |target_user| on Android O+) then None
 
     Raises:
-      CommandFailedError if dumpsys does not return any output
+      CommandFailedError if dumpsys does not return any output (pre-O)
     """
-    return self._GetPackageDetailFromDumpsys(package_name, 'userId=')
+    if self.build_version_sdk < version_codes.OREO:
+      return self._GetPackageDetailFromDumpsys(package_name, 'userId=')
+
+    user_id = (self.target_user
+               if self.target_user is not None else _SYSTEM_USER_ID)
+    output = self.RunShellCommand(
+        ['pm', 'list', 'packages', '-U', '--user',
+         str(user_id), package_name],
+        check_return=True)
+    # `pm list packages` matches by substring, so check the exact name.
+    matcher = re.compile(r'^package:{}(?:\s+.*)?\s+uid:(\d+)\b'.format(
+        re.escape(package_name)))
+    for line in output:
+      m = matcher.match(line.strip())
+      if m:
+        return m.group(1)
+    return None
 
   @decorators.WithTimeoutAndRetriesFromInstance()
   def _GetPackageDetailFromDumpsys(self,

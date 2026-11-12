@@ -763,27 +763,78 @@ class DeviceUtils_GetWebViewProvider(DeviceUtilsTest):
 
 class DeviceUtils_GetUidForPackageTest(DeviceUtilsTest):
   def test_GetUidForPackage_Exists(self):
-    with self.assertCall(
-        self.call.device._GetDumpsysOutput(
-            ['package', 'com.android.chrome'], 'userId='),
-        ['  userId=1001']):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.NOUGAT), \
+         self.assertCall(
+             self.call.device._GetDumpsysOutput(
+                 ['package', 'com.android.chrome'], 'userId='),
+             ['  userId=1001']):
       self.assertEqual('1001',
                        self.device.GetUidForPackage('com.android.chrome'))
 
   def test_GetUidForPackage_notInstalled(self):
-    with self.assertCall(
-        self.call.device._GetDumpsysOutput(
-            ['package', 'com.android.chrome'], 'userId='),
-        ['']):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.NOUGAT), \
+         self.assertCall(
+             self.call.device._GetDumpsysOutput(
+                 ['package', 'com.android.chrome'], 'userId='),
+             ['']):
       self.assertEqual(None, self.device.GetUidForPackage('com.android.chrome'))
 
   def test_GetUidForPackage_fails(self):
-    with self.assertCall(
-        self.call.device._GetDumpsysOutput(
-            ['package', 'com.android.chrome'], 'userId='),
-        []):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.NOUGAT), \
+         self.assertCall(
+             self.call.device._GetDumpsysOutput(
+                 ['package', 'com.android.chrome'], 'userId='),
+             []):
       with self.assertRaises(device_errors.CommandFailedError):
         self.device.GetUidForPackage('com.android.chrome')
+
+  def test_GetUidForPackage_pm_systemUser(self):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.OREO), \
+         self.assertCall(
+             self.call.device.RunShellCommand(
+                 ['pm', 'list', 'packages', '-U', '--user', '0',
+                  'com.android.chrome'], check_return=True),
+             ['package:com.android.chrome uid:10139']):
+      self.assertEqual('10139',
+                       self.device.GetUidForPackage('com.android.chrome'))
+
+  def test_GetUidForPackage_pm_secondaryUser(self):
+    self.device.target_user = 10
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.OREO), \
+         self.assertCall(
+             self.call.device.RunShellCommand(
+                 ['pm', 'list', 'packages', '-U', '--user', '10',
+                  'com.android.chrome'], check_return=True),
+             ['package:com.android.chrome uid:1010139']):
+      self.assertEqual('1010139',
+                       self.device.GetUidForPackage('com.android.chrome'))
+
+  def test_GetUidForPackage_pm_exactPackageName(self):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.OREO), \
+         self.assertCall(
+             self.call.device.RunShellCommand(
+                 ['pm', 'list', 'packages', '-U', '--user', '0',
+                  'com.android.chrome'], check_return=True),
+             ['package:com.android.chrome.beta uid:10200',
+              'package:com.android.chrome uid:10139']):
+      self.assertEqual('10139',
+                       self.device.GetUidForPackage('com.android.chrome'))
+
+  def test_GetUidForPackage_pm_notInstalled(self):
+    with self.patch_call(self.call.device.build_version_sdk,
+                         return_value=version_codes.OREO), \
+         self.assertCall(
+             self.call.device.RunShellCommand(
+                 ['pm', 'list', 'packages', '-U', '--user', '0',
+                  'com.android.chrome'], check_return=True),
+             []):
+      self.assertEqual(None, self.device.GetUidForPackage('com.android.chrome'))
 
 
 class DeviceUtils_GetPackageArchitectureTest(DeviceUtilsTest):
