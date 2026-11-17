@@ -1355,9 +1355,10 @@ class LinuxBasedInterfaceIntegrationTest(unittest.TestCase):
     self.assertEqual(offset, second_offset)
 
     # Can only really tell if its offset to itself, with some margin of the
-    # call being made.
+    # call being made. `date +%s` truncates to whole seconds, so the offset is
+    # -1 when the call straddles a second boundary.
     if self.lbi.local:
-      self.assertAlmostEqual(offset, 0, places=1)
+      self.assertAlmostEqual(offset, 0, delta=1)
 
   @decorators.Enabled('linux', 'chromeos')
   def testRmRF(self):
