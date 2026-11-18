@@ -103,7 +103,7 @@ class AlertGroup:
       logging.debug('Found %d anomalies for group %s', len(anomaly_ids),
                     group_id)
       return anomaly_ids
-    raise NoEntityFoundException('No Alert Group Found with id: %s', group_id)
+    raise NoEntityFoundException('No Alert Group Found with id: %s' % group_id)
 
   @classmethod
   def Get(cls, group_name, group_type, active=True):
