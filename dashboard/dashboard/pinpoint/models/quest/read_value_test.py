@@ -861,17 +861,26 @@ class ReadValueTest(_ReadValueExecutionTest):
     hist.name = 'hist'
     hist.unit.unit = histogram_proto.Pb2().COUNT
 
-    # In Protobuf 4+, maps may be treated as repeated entry messages.
-    bin_entry = hist.all_bins.add()
-    bin_entry.key = 0
-    bin_entry.value.bin_count = 1
+    # all_bins and diagnostic_map are proto maps. Depending on the protoc and
+    # protobuf runtime used to generate histogram_pb2, they are exposed either
+    # as real maps (MessageMap, no add()) or as repeated key/value entry
+    # messages (no map indexing). Support both.
+    if hasattr(hist.all_bins, 'add'):
+      bin_entry = hist.all_bins.add()
+      bin_entry.key = 0
+      bin_value = bin_entry.value
+    else:
+      bin_value = hist.all_bins[0]
+    bin_value.bin_count = 1
 
-    diag_map_entry = bin_entry.value.diagnostic_maps.add()
-
-    # diagnostic_map is also a repeated field of entries in this mode.
-    new_diag_entry = diag_map_entry.diagnostic_map.add()
-    new_diag_entry.key = 'test'
-    new_diag_entry.value.generic_set.values.append('metric')
+    diag_map = bin_value.diagnostic_maps.add()
+    if hasattr(diag_map.diagnostic_map, 'add'):
+      diag_entry = diag_map.diagnostic_map.add()
+      diag_entry.key = 'test'
+      diagnostic = diag_entry.value
+    else:
+      diagnostic = diag_map.diagnostic_map['test']
+    diagnostic.generic_set.values.append('metric')
 
     self.SetOutputFileContentsProto(hist_set.SerializeToString())
     quest = read_value.ReadValue(
