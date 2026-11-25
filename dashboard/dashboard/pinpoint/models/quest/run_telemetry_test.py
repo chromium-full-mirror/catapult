@@ -107,6 +107,7 @@ _CROSSBENCH_NAME = {
     'js_bridge.embedder.crossbench': 'embedder',
     'shell.embedder.crossbench': 'embedder',
     'notification.embedder.crossbench': 'embedder',
+    'p90.embedder.crossbench': 'embedder',
     # Loading
     'loading.crossbench': 'loading',
     # webai.crossbench
@@ -192,6 +193,23 @@ _CROSSBENCH_EXTRA_ARGS = {
         '--embedder-drop-caches',
         '--android-action=android.intent.action.WEB_SEARCH',
         '--android-extras=query=weather',
+    ),
+    'p90.embedder.crossbench': (
+        '--wpr=crossbench_android_embedder_002.wprgo',
+        '--wpr-network-speed=3G-slow',
+        '--skip-wpr-script-injection',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/cipd/arm64/Velvet_arm64.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/embedder_cuj_config.hjson',
+        '--probe-config=../../clank/android_webview/tools/crossbench_config/agsa_probe_config.hjson',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--http-request-timeout=2s',
+        '--ignore-partial-failures',
+        '--embedder-process-name=googleapp',
+        '--embedder-setup-command-config=../../clank/android_webview/tools/crossbench_config/agsa_p90_setup_config.hjson',
+        '--embedder-teardown-command-config=../../third_party/crossbench/config/team/woa/teardown_memeater.hjson',
+        '--embedder-drop-caches',
     ),
     'loading.crossbench': (
         '--wpr=crossbench_android_loading_000.wprgo',

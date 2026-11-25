@@ -34,6 +34,7 @@ _BENCHMARK_TIMEOUTS = {
     'embedder.crossbench': 5400,  # 1.5 hours
     'js_bridge.embedder.crossbench': 5400,  # 1.5 hours
     'notification.embedder.crossbench': 5400,  # 1.5 hours
+    'p90.embedder.crossbench': 5400,  # 1.5 hours
 }
 
 

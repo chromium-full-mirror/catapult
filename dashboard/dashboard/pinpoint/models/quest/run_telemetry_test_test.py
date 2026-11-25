@@ -214,6 +214,44 @@ class StartTest(unittest.TestCase):
     ])
     self.assertEqual(execution.execution_timeout_secs, 5400)
 
+  def testP90EmbedderCrossbench(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'p90.embedder.crossbench'
+    arguments['browser'] = 'android-webview-standalone-google-bundle'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+    change = mock.MagicMock(spec=change_module.Change)
+    change.commits = ()
+    execution = quest.Start(change, 'https://isolate.server', 'isolate hash')
+    self.assertEqual(execution._extra_args, [
+        '--benchmark-display-name=p90.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=android-webview-standalone-google-bundle',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS + [
+        '--results-label',
+        str(change),
+        '--wpr=crossbench_android_embedder_002.wprgo',
+        '--wpr-network-speed=3G-slow',
+        '--skip-wpr-script-injection',
+        '--embedder=../../clank/android_webview/tools/crossbench_config/'
+        'cipd/arm64/Velvet_arm64.apk',
+        '--splashscreen=skip',
+        '--cuj-config=../../third_party/crossbench/config/team/woa/'
+        'embedder_cuj_config.hjson',
+        '--probe-config=../../clank/android_webview/tools/'
+        'crossbench_config/agsa_probe_config.hjson',
+        '--repetitions=50',
+        '--cool-down-threshold=moderate',
+        '--http-request-timeout=2s',
+        '--ignore-partial-failures',
+        '--embedder-process-name=googleapp',
+        '--embedder-setup-command-config=../../clank/android_webview/'
+        'tools/crossbench_config/agsa_p90_setup_config.hjson',
+        '--embedder-teardown-command-config=../../third_party/crossbench/'
+        'config/team/woa/teardown_memeater.hjson',
+        '--embedder-drop-caches',
+    ])
+    self.assertEqual(execution.execution_timeout_secs, 5400)
+
 
 class FromDictTest(unittest.TestCase):
 
@@ -530,3 +568,49 @@ class FromDictTest(unittest.TestCase):
             'storyfilter': 'js-bridge-memory',
         })
     self.assertEqual(arguments['story'], 'js-bridge-memory')
+
+  def testCrossbenchP90Embedder(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'p90.embedder.crossbench'
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=p90.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'p90.embedder.crossbench',
+            'hasfilter': '0',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+
+  def testCrossbenchP90EmbedderSkipsStoriesArg(self):
+    arguments = dict(_BASE_ARGUMENTS)
+    arguments['benchmark'] = 'p90.embedder.crossbench'
+    arguments['story'] = 'agsa-simple'
+
+    quest = run_telemetry_test.RunTelemetryTest.FromDict(arguments)
+
+    extra_args = [
+        '--benchmark-display-name=p90.embedder.crossbench',
+        '--benchmarks=embedder',
+        '--browser=release',
+    ] + run_performance_test._DEFAULT_EXTRA_ARGS
+    expected = run_telemetry_test.RunTelemetryTest(
+        'server', run_test_test.DIMENSIONS, extra_args, {
+            'benchmark': 'p90.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-simple',
+        }, _TELEMETRY_COMMAND[:-1] + ['../../third_party/crossbench/cb.py'],
+        'out/Release')
+    self.assertEqual(quest, expected)
+    self.assertEqual(
+        quest._swarming_tags, {
+            'benchmark': 'p90.embedder.crossbench',
+            'hasfilter': '1',
+            'storyfilter': 'agsa-simple',
+        })
+    self.assertEqual(arguments['story'], 'agsa-simple')
